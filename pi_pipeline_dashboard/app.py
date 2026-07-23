@@ -586,8 +586,10 @@ with tab_forward_cal:
         else:  # Fundraising Start Date
             cal_sorted = cal_df.sort_values(["Raise Start Date", "Firm"], na_position="last")
 
-        firm_order = cal_sorted["Firm"].tolist()
+        group_col = {"Asset Class": "Asset Class", "Conviction": "Stage"}.get(sort_mode)
+
         with_dates = cal_sorted[cal_sorted["Target Close Date"].notna()]
+        chart_firm_order = with_dates["Firm"].tolist()
 
         if with_dates.empty:
             st.caption("No Forward Calendar firms have a Target Close Date yet - no Gantt chart to show.")
@@ -598,10 +600,19 @@ with tab_forward_cal:
                 x_end="_end",
                 y="Firm",
                 color="Stage",
-                category_orders={"Stage": STAGE_OPTIONS, "Firm": firm_order},
+                category_orders={"Stage": STAGE_OPTIONS, "Firm": chart_firm_order},
                 color_discrete_map=STAGE_COLOR_MAP,
             )
             fig.update_yaxes(autorange="reversed", title=None)
+
+            if group_col:
+                # A dashed divider line wherever the group changes, so it's clear
+                # where one Asset Class / Conviction block ends and the next begins.
+                group_values = with_dates[group_col].tolist()
+                for i in range(1, len(group_values)):
+                    if group_values[i] != group_values[i - 1]:
+                        fig.add_hline(y=i - 0.5, line_width=1, line_dash="dot", line_color="gray")
+
             st.plotly_chart(fig, width='stretch', key="chart_forward_calendar_gantt")
 
         display_cols = [
@@ -615,4 +626,13 @@ with tab_forward_cal:
             "Commentary",
         ]
         st.subheader("Forward Calendar firms")
-        st.dataframe(cal_sorted[display_cols].reset_index(drop=True), width='stretch')
+        if group_col:
+            first = True
+            for group_value, group_rows in cal_sorted.groupby(group_col, sort=False):
+                if not first:
+                    st.divider()
+                first = False
+                st.markdown(f"**{group_value or '(blank)'}** ({len(group_rows)})")
+                st.dataframe(group_rows[display_cols].reset_index(drop=True), width='stretch')
+        else:
+            st.dataframe(cal_sorted[display_cols].reset_index(drop=True), width='stretch')

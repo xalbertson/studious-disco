@@ -106,6 +106,12 @@ client's drag board), **Asset Class**, **Conviction**, or **Fundraising
 Start Date**. Switching sort modes doesn't touch the underlying custom
 order — it's purely a different way to view the same set of firms.
 
+Sorting by **Asset Class** or **Conviction** adds a dashed divider line
+between groups on the Gantt chart, and breaks the table below it into one
+sub-table per group (`Venture`, `Growth`, …), so it's clear where one group
+ends and the next begins. Custom order and Fundraising Start Date show a
+single flat table/chart instead, since there's no discrete group to divide.
+
 ## Bulk import
 
 See [`CSV_UPLOAD_FORMAT.md`](CSV_UPLOAD_FORMAT.md) for the full column
