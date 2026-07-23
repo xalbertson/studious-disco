@@ -37,6 +37,38 @@ status, client-invested, and a text search) applies to every exhibit tab.
 The Data Entry tab always shows the full, unfiltered dataset so nothing is
 hidden while editing.
 
+## Bulk import
+
+Open **📥 Start from a blank template or bulk-upload a CSV** at the top of the
+Data Entry tab:
+
+- **Download blank template** — an empty CSV with the correct headers, to fill
+  in outside the app (Excel, Google Sheets, etc.).
+- **Upload a filled-in CSV** — parses the file, warns about any unrecognized
+  columns, and lets you choose to **replace all existing data** or **append**
+  it to what's already there. Only a `Firm` column is required; anything else
+  missing is left blank. Nothing is written until you click **Apply upload**.
+
+## Export exhibits to PowerPoint
+
+Each chart-based exhibit tab (**By Conviction**, **By Geography**, **By Asset
+Class**, **Fundraising Timeline**) has an **⬇️ Export exhibit to PPTX** button.
+It produces a single-slide, intentionally unformatted deck (default
+PowerPoint template/colors — meant to be pasted into or restyled within your
+own deck) containing:
+
+- the exhibit's data as a **native PowerPoint chart backed by an embedded
+  Excel worksheet** (double-click the chart in PowerPoint → "Edit Data in
+  Excel" to see/edit the underlying numbers, same as any chart built directly
+  in PowerPoint), and
+- a **footnote** listing whichever sidebar filters were active and the firm
+  count, e.g. `Filters: Stage = 1. Core idea, 2. Evaluate | n = 12 firms |
+  Generated 2026-07-23`, so the export is self-documenting.
+
+The Fundraising Timeline tab's Gantt-style chart isn't exported — a timeline
+isn't a standard Excel/PowerPoint chart type, so that tab exports its
+fundraising-status bar chart instead.
+
 ## Data model
 
 Seeded from the source pipeline workbook (`Firm`, `Stage`, `Asset Class`, `Sub
@@ -56,6 +88,8 @@ Asset Class`, `Sector`, `Geography`, `Client Invested`, `Source`,
 ## Notes
 
 - All 101 firms from the source workbook are preloaded in
-  `data/pipeline_data.csv`.
+  `data/pipeline_data.csv`. A blank version of the same schema is checked in
+  at `data/pipeline_template_blank.csv` for anyone who wants a template
+  without launching the app.
 - The CSV is plain text, so it diffs cleanly in git if you want to version
   pipeline changes over time.

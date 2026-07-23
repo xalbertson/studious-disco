@@ -21,7 +21,8 @@ from constants import (
     STAGE_OPTIONS,
     STAGE_RANK,
 )
-from data_utils import load_data, save_data, stage_sort_key
+from data_utils import blank_template, load_data, parse_uploaded_csv, save_data, stage_sort_key
+from pptx_export import build_bar_chart_pptx, build_filter_footnote
 
 st.set_page_config(page_title="PI Pipeline Dashboard", layout="wide")
 
@@ -50,6 +51,45 @@ tab_entry, tab_overview, tab_conviction, tab_geo, tab_asset, tab_fundraising = s
 # Data Entry
 # ---------------------------------------------------------------------------
 with tab_entry:
+    with st.expander("📥 Start from a blank template or bulk-upload a CSV"):
+        st.download_button(
+            "⬇️ Download blank template",
+            data=blank_template().to_csv(index=False),
+            file_name="pi_pipeline_template.csv",
+            mime="text/csv",
+        )
+
+        uploaded = st.file_uploader(
+            "Upload a filled-in CSV to skip manual entry",
+            type=["csv"],
+            key="csv_uploader",
+        )
+        if uploaded is not None:
+            try:
+                new_df, upload_warnings = parse_uploaded_csv(uploaded)
+            except ValueError as e:
+                st.error(str(e))
+            else:
+                for w in upload_warnings:
+                    st.warning(w)
+                st.write(f"Parsed **{len(new_df)}** rows from `{uploaded.name}`.")
+                mode = st.radio(
+                    "How should this be applied?",
+                    ["Replace all existing data", "Append to existing data"],
+                    horizontal=True,
+                    key="csv_upload_mode",
+                )
+                if st.button("Apply upload", type="primary", key="apply_csv_upload"):
+                    result = (
+                        new_df
+                        if mode == "Replace all existing data"
+                        else pd.concat([st.session_state.df, new_df], ignore_index=True)
+                    )
+                    save_data(result)
+                    st.session_state.df = load_data()
+                    st.success(f"Pipeline now has {len(st.session_state.df)} firms.")
+                    st.rerun()
+
     st.caption(
         "Add or edit firms below. Click **Save changes** to persist to "
         f"`{DATA_PATH}`. Rows with a blank Firm are dropped on save."
@@ -124,6 +164,15 @@ if f_search:
 
 st.sidebar.caption(f"{len(filtered)} of {len(df)} firms shown")
 
+active_filters = {
+    "Stage": f_stage,
+    "Asset Class": f_asset,
+    "Geography": f_geo,
+    "Fundraising Status": f_fundraising,
+    "Client Invested": None if f_invested == "All" else f_invested,
+    "Search": f_search,
+}
+
 # ---------------------------------------------------------------------------
 # Overview
 # ---------------------------------------------------------------------------
@@ -172,6 +221,23 @@ with tab_conviction:
         fig.update_layout(legend_title_text="Asset Class", xaxis_title=None, yaxis_title="Firms")
         st.plotly_chart(fig, width='stretch')
 
+        cats = [s for s in STAGE_OPTIONS if s in counts["Stage"].unique()]
+        pivot = counts.pivot(index="Stage", columns="Asset Class", values="Count").reindex(cats).fillna(0)
+        series = {ac: pivot[ac].astype(int).tolist() for ac in pivot.columns}
+        st.download_button(
+            "⬇️ Export exhibit to PPTX",
+            data=build_bar_chart_pptx(
+                "Pipeline by Conviction (Stage)",
+                cats,
+                series,
+                build_filter_footnote(active_filters, len(filtered)),
+                stacked=True,
+            ),
+            file_name="pipeline_by_conviction.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            key="pptx_conviction",
+        )
+
     st.subheader("Firms sorted by conviction")
     sorted_df = filtered.assign(_rank=stage_sort_key(filtered)).sort_values(
         by=["_rank", "Firm"]
@@ -202,6 +268,19 @@ with tab_geo:
         )
         fig.update_layout(xaxis_title=None, yaxis_title="Firms", showlegend=False)
         st.plotly_chart(fig, width='stretch')
+
+        st.download_button(
+            "⬇️ Export exhibit to PPTX",
+            data=build_bar_chart_pptx(
+                "Pipeline by Geography",
+                geo_counts["Geography"].tolist(),
+                {"Firms": geo_counts["Count"].astype(int).tolist()},
+                build_filter_footnote(active_filters, len(filtered)),
+            ),
+            file_name="pipeline_by_geography.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            key="pptx_geo",
+        )
 
     st.subheader("Firms sorted by geography")
     st.dataframe(
@@ -234,6 +313,19 @@ with tab_asset:
         )
         fig.update_layout(xaxis_title=None, yaxis_title="Firms", showlegend=False)
         st.plotly_chart(fig, width='stretch')
+
+        st.download_button(
+            "⬇️ Export exhibit to PPTX",
+            data=build_bar_chart_pptx(
+                "Pipeline by Asset Class",
+                ac_counts["Asset Class"].tolist(),
+                {"Firms": ac_counts["Count"].astype(int).tolist()},
+                build_filter_footnote(active_filters, len(filtered)),
+            ),
+            file_name="pipeline_by_asset_class.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            key="pptx_asset",
+        )
 
     st.subheader("Firms sorted by asset class")
     st.dataframe(
@@ -272,6 +364,19 @@ with tab_fundraising:
         )
         fig.update_layout(xaxis_title=None, yaxis_title="Firms", showlegend=False)
         st.plotly_chart(fig, width='stretch')
+
+        st.download_button(
+            "⬇️ Export exhibit to PPTX",
+            data=build_bar_chart_pptx(
+                "Pipeline by Fundraising Status",
+                status_counts["Fundraising Status"].tolist(),
+                {"Firms": status_counts["Count"].astype(int).tolist()},
+                build_filter_footnote(active_filters, len(filtered)),
+            ),
+            file_name="pipeline_by_fundraising_status.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            key="pptx_fundraising",
+        )
 
     if with_dates.empty:
         st.info("No target close dates entered yet.")
