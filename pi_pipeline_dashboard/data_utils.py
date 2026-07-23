@@ -9,6 +9,7 @@ from constants import (
     COLUMNS,
     DATA_PATH,
     DATE_COLUMNS,
+    FORWARD_CAL_ORDER_COLUMNS,
     LIST_COLUMNS,
 )
 
@@ -33,7 +34,8 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
     for col in DATE_COLUMNS:
         df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    df["Forward Calendar Order"] = pd.to_numeric(df["Forward Calendar Order"], errors="coerce")
+    for col in FORWARD_CAL_ORDER_COLUMNS:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
     return df[COLUMNS]
 
@@ -87,10 +89,9 @@ def save_data(df: pd.DataFrame, path: str = DATA_PATH) -> None:
         out[col] = out[col].apply(
             lambda lst: CLIENT_LIST_DELIMITER.join(lst) if isinstance(lst, list) else (lst or "")
         )
-    out["Forward Calendar Order"] = pd.to_numeric(out["Forward Calendar Order"], errors="coerce")
-    out["Forward Calendar Order"] = out["Forward Calendar Order"].apply(
-        lambda v: "" if pd.isna(v) else str(int(v))
-    )
+    for col in FORWARD_CAL_ORDER_COLUMNS:
+        out[col] = pd.to_numeric(out[col], errors="coerce")
+        out[col] = out[col].apply(lambda v: "" if pd.isna(v) else str(int(v)))
     out.to_csv(path, index=False)
 
 

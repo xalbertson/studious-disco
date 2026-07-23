@@ -40,13 +40,25 @@ A blank, correctly-headed starting point is checked in at
 | `Raise Start Date` | No | date | `YYYY-MM-DD` recommended | When the raise began. Together with `Target Close Date`, this sets how long the bar spans on the Fundraising Timeline / Forward Calendar Gantt charts. If left blank, that firm's chart bar falls back to a one-day marker at `Target Close Date` instead of a real span. |
 | `Target Close Date` | No | date | `YYYY-MM-DD` recommended | Pandas will parse most common date formats, but ISO (`2026-09-01`) is the only one guaranteed unambiguous. Blank = no date. Drives the Fundraising Timeline sort/chart. |
 | `Next Follow Up Date` | No | date | `YYYY-MM-DD` recommended | Same format rules as `Target Close Date`. |
-| `Forward Calendar Order` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Blank = not on the Forward Calendar. A number = on the calendar, at that position in the custom drag order (`0` first). Normally set by dragging in the Forward Calendar tab, not by CSV — if you do set it by hand, use consecutive integers starting at `0`; gaps or duplicates aren't validated. |
+| `Forward Calendar Order: Global` | No | integer, or blank | e.g. `0`, `1`, `2`, … | The Global client view's Forward Calendar. Blank = not on it. A number = on it, at that position in the custom drag order (`0` first). One of five identically-formatted columns, one per client view — see below. |
+| `Forward Calendar Order: Olympus Mons` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Olympus Mons's own Forward Calendar. Same format as `Forward Calendar Order: Global`. |
+| `Forward Calendar Order: Gaucho` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Gaucho's own Forward Calendar. Same format as `Forward Calendar Order: Global`. |
+| `Forward Calendar Order: Ursa Major` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Ursa Major's own Forward Calendar. Same format as `Forward Calendar Order: Global`. |
+| `Forward Calendar Order: Orion` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Orion's own Forward Calendar. Same format as `Forward Calendar Order: Global`. |
 | `Access` | No | free text | e.g. `Strong`, `Medium`, `Weak`, or blank | Conviction sub-score; not populated in the seed data. |
 | `Track Record` | No | free text | e.g. `Strong`, `Medium`, `Weak`, or blank | Conviction sub-score; not populated in the seed data. |
 | `Type of Risk` | No | free text | — | Conviction sub-score; not populated in the seed data. |
 | `Execution/Strategy Adherence` | No | free text | — | Conviction sub-score; not populated in the seed data. |
 | `Commentary` | No | free text | — | Free-form notes. Commas/quotes are fine — just make sure the CSV is properly quoted (standard `csv` writers handle this automatically). |
 | `Last Updated` | No | date | `YYYY-MM-DD` | If left blank, the app stamps it with today's date the next time that row is saved via the in-app editor — you don't need to set it yourself on upload. |
+
+**On the five `Forward Calendar Order: *` columns:** each client view — Global
+included — has its own, completely independent Forward Calendar, so a firm
+can be at position `0` on Orion's calendar, unset on Olympus Mons's, and
+position `3` on Global's, all at once. These are normally set by dragging in
+the Forward Calendar tab, not by CSV; if you do set them by hand, use
+consecutive integers starting at `0` within each column — gaps or duplicates
+aren't validated.
 
 ## Values outside the fixed lists
 
@@ -77,8 +89,8 @@ constraint.
 ## Example row
 
 ```csv
-Firm,Stage,Asset Class,Sub Asset Class,Sector,Geography,Clients Invested,Source,HQ,Fundraising Status,Raise Start Date,Target Close Date,Next Follow Up Date,Forward Calendar Order,Access,Track Record,Type of Risk,Execution/Strategy Adherence,Commentary,Last Updated
-Example Capital Partners,1. Core idea,Venture,Multi Stage,Generalist,US,Olympus Mons;Orion,GIR,New York,Raising - Early Stage,2026-07-01,2026-11-15,2026-09-01,,Strong,Strong,,,"Top idea, strong partnership, no near-term concerns",2026-07-23
+Firm,Stage,Asset Class,Sub Asset Class,Sector,Geography,Clients Invested,Source,HQ,Fundraising Status,Raise Start Date,Target Close Date,Next Follow Up Date,Forward Calendar Order: Global,Forward Calendar Order: Olympus Mons,Forward Calendar Order: Gaucho,Forward Calendar Order: Ursa Major,Forward Calendar Order: Orion,Access,Track Record,Type of Risk,Execution/Strategy Adherence,Commentary,Last Updated
+Example Capital Partners,1. Core idea,Venture,Multi Stage,Generalist,US,Olympus Mons;Orion,GIR,New York,Raising - Early Stage,2026-07-01,2026-11-15,2026-09-01,,0,,,2,Strong,Strong,,,"Top idea, strong partnership, no near-term concerns",2026-07-23
 ```
 
 Minimal valid row (only the required column):

@@ -12,6 +12,7 @@ import streamlit as st
 from streamlit_sortables import sort_items
 
 from constants import (
+    ALL_CLIENT_VIEWS,
     ASSET_CLASS_OPTIONS,
     CATEGORICAL_SEQUENCE,
     CLIENT_OPTIONS,
@@ -25,6 +26,7 @@ from constants import (
     STAGE_COLOR_MAP,
     STAGE_OPTIONS,
     STAGE_RANK,
+    forward_cal_order_col,
 )
 from data_utils import (
     blank_template,
@@ -139,35 +141,42 @@ with tab_entry:
         f"`{DATA_PATH}`. Rows with a blank Firm are dropped on save."
     )
 
+    data_entry_column_config = {
+        "Stage": st.column_config.SelectboxColumn("Stage (Conviction)", options=STAGE_OPTIONS),
+        "Asset Class": st.column_config.SelectboxColumn(options=ASSET_CLASS_OPTIONS),
+        "Geography": st.column_config.SelectboxColumn(options=GEOGRAPHY_OPTIONS),
+        "Source": st.column_config.SelectboxColumn(options=SOURCE_OPTIONS),
+        "Fundraising Status": st.column_config.SelectboxColumn(options=FUNDRAISING_STATUS_OPTIONS),
+        "Clients Invested": st.column_config.ListColumn(
+            help=f"Zero or more of: {', '.join(CLIENT_OPTIONS)}"
+        ),
+        "Raise Start Date": st.column_config.DateColumn(),
+        "Target Close Date": st.column_config.DateColumn(),
+        "Next Follow Up Date": st.column_config.DateColumn(),
+        "Last Updated": st.column_config.DateColumn(),
+        "Commentary": st.column_config.TextColumn(width="large"),
+    }
+    data_entry_column_config.update(
+        {
+            forward_cal_order_col(c): st.column_config.NumberColumn(
+                f"Fwd Cal: {c}",
+                help=(
+                    f"{c}'s Forward Calendar position. Blank = not on that calendar. "
+                    "Normally set by dragging in the Forward Calendar tab, not by hand."
+                ),
+                step=1,
+                format="%d",
+            )
+            for c in ALL_CLIENT_VIEWS
+        }
+    )
+
     edited = st.data_editor(
         st.session_state.df,
         num_rows="dynamic",
         width='stretch',
         height=500,
-        column_config={
-            "Stage": st.column_config.SelectboxColumn("Stage (Conviction)", options=STAGE_OPTIONS),
-            "Asset Class": st.column_config.SelectboxColumn(options=ASSET_CLASS_OPTIONS),
-            "Geography": st.column_config.SelectboxColumn(options=GEOGRAPHY_OPTIONS),
-            "Source": st.column_config.SelectboxColumn(options=SOURCE_OPTIONS),
-            "Fundraising Status": st.column_config.SelectboxColumn(options=FUNDRAISING_STATUS_OPTIONS),
-            "Clients Invested": st.column_config.ListColumn(
-                help=f"Zero or more of: {', '.join(CLIENT_OPTIONS)}"
-            ),
-            "Raise Start Date": st.column_config.DateColumn(),
-            "Target Close Date": st.column_config.DateColumn(),
-            "Next Follow Up Date": st.column_config.DateColumn(),
-            "Forward Calendar Order": st.column_config.NumberColumn(
-                "Forward Calendar Order",
-                help=(
-                    "Blank = not on the Forward Calendar. Normally set by dragging "
-                    "in the Forward Calendar tab, not by hand."
-                ),
-                step=1,
-                format="%d",
-            ),
-            "Last Updated": st.column_config.DateColumn(),
-            "Commentary": st.column_config.TextColumn(width="large"),
-        },
+        column_config=data_entry_column_config,
         key="pipeline_editor",
     )
 
@@ -472,33 +481,39 @@ with tab_fundraising:
 # Forward Calendar
 # ---------------------------------------------------------------------------
 with tab_forward_cal:
-    st.subheader("Forward Calendar")
+    order_col = forward_cal_order_col(global_client)
+
+    st.subheader(f"Forward Calendar — {global_client}")
     st.caption(
-        "Drag firms from **Filtered results** (driven by the sidebar filters) into "
-        "**Forward Calendar** to build a curated set. Membership persists across "
-        "filter changes - e.g. filter for one search, drag a few in, change the "
-        "filter to a different search, drag more in. Drag an item back out to "
-        "remove it, or reorder within Forward Calendar to set the custom order."
+        f"Each client view (top-left) has its **own** Forward Calendar - you're "
+        f"editing **{global_client}**'s right now. Drag firms from **Filtered "
+        "results** (driven by the sidebar filters) into **Forward Calendar** to "
+        "build its curated set. Membership persists across filter changes - e.g. "
+        "filter for one search, drag a few in, change the filter to a different "
+        "search, drag more in. Drag an item back out to remove it, or reorder "
+        "within Forward Calendar to set the custom order. Switch the client view "
+        "to see and build a different client's calendar."
     )
 
     all_firms_df = st.session_state.df
-    on_cal = all_firms_df["Forward Calendar Order"].notna()
-    calendar_items = (
-        all_firms_df.loc[on_cal].sort_values("Forward Calendar Order")["Firm"].tolist()
-    )
-    source_items = sorted(filtered.loc[~filtered["Forward Calendar Order"].notna(), "Firm"].tolist())
+    on_cal = all_firms_df[order_col].notna()
+    calendar_items = all_firms_df.loc[on_cal].sort_values(order_col)["Firm"].tolist()
+    source_items = sorted(filtered.loc[filtered[order_col].isna(), "Firm"].tolist())
 
-    # Force a fresh mount whenever the true persisted state or the sidebar
-    # filter changes, so the board always opens showing the current truth
-    # rather than stale drag state from a previous mount.
+    # Force a fresh mount whenever the true persisted state, the client view, or
+    # the sidebar filter changes, so the board always opens showing the current
+    # truth rather than stale drag state from a previous mount.
     fingerprint = hashlib.md5(
-        ("|".join(source_items) + "::" + "|".join(calendar_items)).encode()
+        (global_client + "::" + "|".join(source_items) + "::" + "|".join(calendar_items)).encode()
     ).hexdigest()[:12]
 
     board = sort_items(
         [
             {"header": f"🔍 Filtered results ({len(source_items)})", "items": source_items},
-            {"header": f"🗓️ Forward Calendar ({len(calendar_items)})", "items": calendar_items},
+            {
+                "header": f"🗓️ {global_client} Forward Calendar ({len(calendar_items)})",
+                "items": calendar_items,
+            },
         ],
         multi_containers=True,
         key=f"forward_cal_board_{fingerprint}",
@@ -508,16 +523,16 @@ with tab_forward_cal:
     if new_calendar_order != calendar_items:
         order_map = {firm: i for i, firm in enumerate(new_calendar_order)}
         updated = all_firms_df.copy()
-        updated["Forward Calendar Order"] = updated["Firm"].map(order_map)
+        updated[order_col] = updated["Firm"].map(order_map)
         save_data(updated)
         st.session_state.df = load_data()
         st.rerun()
 
     st.divider()
 
-    cal_df = st.session_state.df[st.session_state.df["Forward Calendar Order"].notna()].copy()
+    cal_df = st.session_state.df[st.session_state.df[order_col].notna()].copy()
     if cal_df.empty:
-        st.info("Nothing on the Forward Calendar yet - drag firms in above.")
+        st.info(f"Nothing on {global_client}'s Forward Calendar yet - drag firms in above.")
     else:
         sort_col, clear_col = st.columns([3, 1])
         with sort_col:
@@ -525,18 +540,18 @@ with tab_forward_cal:
                 "Sort by",
                 FORWARD_CAL_SORT_OPTIONS,
                 horizontal=True,
-                key="forward_cal_sort_mode",
+                key=f"forward_cal_sort_mode_{global_client}",
             )
         with clear_col:
-            if st.button("🗑️ Clear Forward Calendar"):
+            if st.button(f"🗑️ Clear {global_client}'s Forward Calendar"):
                 cleared = st.session_state.df.copy()
-                cleared["Forward Calendar Order"] = float("nan")
+                cleared[order_col] = float("nan")
                 save_data(cleared)
                 st.session_state.df = load_data()
                 st.rerun()
 
         if sort_mode == "Custom order":
-            cal_sorted = cal_df.sort_values("Forward Calendar Order")
+            cal_sorted = cal_df.sort_values(order_col)
         elif sort_mode == "Asset Class":
             asset_rank = {a: i for i, a in enumerate(ASSET_CLASS_OPTIONS)}
             cal_sorted = (

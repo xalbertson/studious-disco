@@ -62,11 +62,23 @@ FUNDRAISING_STATUS_OPTIONS = [
 CONVICTION_SCORE_OPTIONS = ["", "Strong", "Medium", "Weak"]
 
 # Which clients can be marked invested in a firm. "Global" is not a real
-# client - it's the sentinel for "don't restrict to one client" in the
-# top-left client-view selector.
+# client for investment purposes - it's the sentinel for "don't restrict to
+# one client" in the top-left client-view selector. It DOES get its own
+# Forward Calendar though, same as any named client.
 CLIENT_OPTIONS = ["Olympus Mons", "Gaucho", "Ursa Major", "Orion"]
 GLOBAL_CLIENT = "Global"
 CLIENT_LIST_DELIMITER = ";"
+
+# Every selectable client view, Global included - used to build one Forward
+# Calendar order column per view.
+ALL_CLIENT_VIEWS = [GLOBAL_CLIENT] + CLIENT_OPTIONS
+
+
+def forward_cal_order_col(client: str) -> str:
+    return f"Forward Calendar Order: {client}"
+
+
+FORWARD_CAL_ORDER_COLUMNS = [forward_cal_order_col(c) for c in ALL_CLIENT_VIEWS]
 
 FORWARD_CAL_SORT_OPTIONS = ["Custom order", "Asset Class", "Conviction", "Fundraising Start Date"]
 
@@ -84,7 +96,7 @@ COLUMNS = [
     "Raise Start Date",
     "Target Close Date",
     "Next Follow Up Date",
-    "Forward Calendar Order",
+    *FORWARD_CAL_ORDER_COLUMNS,
     "Access",
     "Track Record",
     "Type of Risk",

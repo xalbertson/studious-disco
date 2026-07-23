@@ -67,34 +67,40 @@ Unlike the other exhibits, which just show whatever the sidebar filters
 currently match, the Forward Calendar is a **manually curated** set of firms
 that persists independent of the filters:
 
-1. Filter the sidebar down to whatever you're looking for (e.g. search "US"
-   in Geography, or a Stage), open the **Forward Calendar** tab, and drag a
-   few firms from **Filtered results** into **Forward Calendar**.
-2. Change the sidebar filters to a different search (e.g. a different
-   geography) and drag more firms in — the calendar keeps everything already
-   added, regardless of what the filter currently shows.
-3. Drag a firm out of **Forward Calendar** (back into **Filtered results**)
-   to remove it, drag within **Forward Calendar** to reorder it, or use
-   **Clear Forward Calendar** to empty it entirely.
+**Every client view has its own, independent Forward Calendar — Global
+included.** The calendar you see and edit is whichever one matches the
+top-left **Client view** selector; switching it swaps in that client's
+calendar (membership, custom order, and the Gantt chart all change to
+match), completely independent of every other client's.
 
-Membership *and* its custom order are stored in a single `Forward Calendar
-Order` column on each firm (blank = not on the calendar; `0`, `1`, `2`, …
-otherwise), so both survive app restarts. It's also editable directly as a
-number in Data Entry, though dragging is the normal way to set it.
+1. Pick a client at top-left, filter the sidebar down to whatever you're
+   looking for (e.g. search "US" in Geography, or a Stage), open the
+   **Forward Calendar** tab, and drag a few firms from **Filtered results**
+   into **Forward Calendar** — this builds *that client's* calendar.
+2. Change the sidebar filters to a different search and drag more firms in —
+   the calendar keeps everything already added, regardless of what the
+   filter currently shows.
+3. Switch **Client view** to a different client (or Global) to build *their*
+   calendar the same way — it starts from whatever that client already has
+   (empty, the first time), completely separate from the one you just built.
+4. Drag a firm out of the current client's **Forward Calendar** (back into
+   **Filtered results**) to remove it, drag within it to reorder, or use
+   **Clear \<Client\>'s Forward Calendar** to empty just that one client's
+   calendar.
+
+Membership *and* custom order for each client are stored in that client's
+own `Forward Calendar Order: <Client>` column (blank = not on that client's
+calendar; `0`, `1`, `2`, … otherwise), so everything survives app restarts
+and switching clients back and forth. Each is also directly editable as a
+number in Data Entry (one column per client), though dragging is the normal
+way to set it.
 
 Below the drag-and-drop board, a **Sort by** toggle controls the order of the
-Gantt chart and the table beneath it: **Custom order** (default — matches
-however you last arranged the drag board), **Asset Class**, **Conviction**,
-or **Fundraising Start Date**. Switching sort modes doesn't touch the
-underlying custom order — it's purely a different way to view the same set
-of firms.
-
-Combine this with **Client view**: switch to a specific client, filter the
-sidebar, and drag that client's positions into the calendar — then switch to
-a different client and repeat, building a per-client forward calendar in the
-same shared list (there's one Forward Calendar per pipeline, not one per
-client — switching Client view only changes filtering/metrics, not calendar
-membership).
+Gantt chart and the table beneath it, for whichever client's calendar is
+active: **Custom order** (default — matches however you last arranged that
+client's drag board), **Asset Class**, **Conviction**, or **Fundraising
+Start Date**. Switching sort modes doesn't touch the underlying custom
+order — it's purely a different way to view the same set of firms.
 
 ## Bulk import
 
@@ -156,9 +162,11 @@ additions:
   going forward to make the Fundraising Timeline tab useful; `Raise Start
   Date` + `Target Close Date` together are what let its Gantt bars show the
   real length of a raise instead of a one-day marker.
-- `Forward Calendar Order` — blank, or an integer giving the firm's position
-  in the Forward Calendar's custom drag order. See the Forward Calendar
-  section above.
+- `Forward Calendar Order: Global`, `Forward Calendar Order: Olympus Mons`,
+  `Forward Calendar Order: Gaucho`, `Forward Calendar Order: Ursa Major`,
+  `Forward Calendar Order: Orion` — one column per client view, each blank
+  or an integer giving the firm's position in *that client's* Forward
+  Calendar custom drag order. See the Forward Calendar section above.
 - `Last Updated` — auto-set to today's date whenever a row is edited and
   saved.
 
