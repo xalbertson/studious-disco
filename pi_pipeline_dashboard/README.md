@@ -56,9 +56,13 @@ out one client's view of the pipeline at a time (see Forward Calendar below).
 - **Forward Calendar** — a manually curated set of firms, built by
   drag-and-drop rather than by filtering. See below.
 
-A filter panel in the sidebar (stage, asset class, geography, fundraising
-status, client-invested, and a text search) applies to every exhibit tab.
-The Data Entry tab always shows the full, unfiltered dataset so nothing is
+A filter panel in the sidebar — stage, asset class, sector, geography, HQ,
+source, due diligence status, fundraising status, client-invested, and a
+text search — applies to every exhibit tab. Sector, geography, and HQ build
+their option lists from whatever's actually in the data; stage, asset
+class, source, due diligence, and fundraising status use fixed lists (see
+[`CSV_UPLOAD_FORMAT.md`](CSV_UPLOAD_FORMAT.md) for the exact values). The
+Data Entry tab always shows the full, unfiltered dataset so nothing is
 hidden while editing.
 
 ## Forward Calendar
@@ -167,6 +171,9 @@ additions:
   `Forward Calendar Order: Orion` — one column per client view, each blank
   or an integer giving the firm's position in *that client's* Forward
   Calendar custom drag order. See the Forward Calendar section above.
+- `Due Diligence (DD)` — one of `Expected`, `In Progress (GIR)`, `In Progress
+  (Team Olympus)`, `Complete`, `Unplanned`. Tracks where DD stands for the
+  firm; has its own sidebar filter.
 - `Last Updated` — auto-set to today's date whenever a row is edited and
   saved.
 

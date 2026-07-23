@@ -31,11 +31,11 @@ A blank, correctly-headed starting point is checked in at
 | `Stage` | No | text (pick one) | `1. Top emerging idea`, `1. Core idea`, `2. Evaluate`, `3. Follow passively`, `4. Pass` | This is the **conviction ranking** — `1. Top emerging idea` and `1. Core idea` are both top conviction, tied; `4. Pass` is lowest. Must match one of these strings exactly to sort/filter/edit correctly (see "Values outside the list" below). |
 | `Asset Class` | No | text (pick one) | `Venture`, `Growth`, `Buyout`, `Credit`, `Venture secondaries` | |
 | `Sub Asset Class` | No | free text | e.g. `Multi Stage`, `Early Stage`, `Direct lending`, `Megacap`, `Seed` | Not constrained to a fixed list — existing data has ~19 distinct values with inconsistent casing (e.g. both `Multi Stage` and `Multi stage` appear). Pick one casing convention for new rows. |
-| `Sector` | No | free text | e.g. `Generalist`, `Biotech`, `Tech`, `Healthcare` | Free text, can be a comma-separated combination like `Consumer, Tech`. |
-| `Geography` | No | text (pick one) | `US`, `Europe`, `Global`, `LatAm`, `US, Europe`, `US, Israel` | This is the **conviction/geo exhibit's** grouping field — sidebar geography filter is built dynamically from whatever's in the data, so off-list values still show up as their own filter option (unlike `Stage`/`Asset Class`/`Source`/`Fundraising Status`, whose filters are fixed lists). |
+| `Sector` | No | free text | e.g. `Generalist`, `Biotech`, `Tech`, `Healthcare` | Free text, can be a comma-separated combination like `Consumer, Tech`. Its sidebar filter is built dynamically from whatever's actually in the data (like `Geography`, `HQ`), not a fixed list. |
+| `Geography` | No | text (pick one) | `US`, `Europe`, `Global`, `LatAm`, `US, Europe`, `US, Israel` | This is the **conviction/geo exhibit's** grouping field — sidebar geography filter is built dynamically from whatever's in the data, so off-list values still show up as their own filter option (unlike `Stage`/`Asset Class`/`Source`/`Fundraising Status`/`Due Diligence (DD)`, whose filters are fixed lists). |
 | `Clients Invested` | No | list (zero or more, `;`-separated) | `Olympus Mons`, `Gaucho`, `Ursa Major`, `Orion` | Which of the firm's clients are invested. Blank = nobody invested. Multiple values are joined with a semicolon in a single cell, e.g. `Olympus Mons;Orion` (no spaces needed around the `;`, but they're stripped if present). This drives the **Client view** selector at the top-left of the app: switching to a specific client changes what "Client Invested" means everywhere (sidebar filter, Overview metric); switching to **Global** treats a firm as invested if *any* client is in the list. Values outside the four names above are kept but generate a warning on upload, since they won't match any client view. |
-| `Source` | No | text (pick one) | `GIR`, `GIR/Client`, `GIR/Prospect`, `Client`, `Prospect`, `Manager`, `Spin out`, `Portfolio company`, `Internal Contact` | How the firm entered the pipeline. |
-| `HQ` | No | free text | — | Not populated in the seed data; free text. |
+| `Source` | No | text (pick one) | `GIR`, `GIR/Client`, `GIR/Prospect`, `Client`, `Prospect`, `Manager`, `Spin out`, `Portfolio company`, `Internal Contact` | How the firm entered the pipeline. Has a fixed-list sidebar filter. |
+| `HQ` | No | free text | — | Not populated in the seed data; free text. Its sidebar filter is built dynamically from whatever's actually in the data, like `Sector`/`Geography`. |
 | `Fundraising Status` | No | text (pick one) | `Unknown`, `Not Currently Raising`, `Raising - Early Stage`, `Raising - Final Close`, `Recently Closed` | Drives the Fundraising Timeline exhibit's status breakdown. |
 | `Raise Start Date` | No | date | `YYYY-MM-DD` recommended | When the raise began. Together with `Target Close Date`, this sets how long the bar spans on the Fundraising Timeline / Forward Calendar Gantt charts. If left blank, that firm's chart bar falls back to a one-day marker at `Target Close Date` instead of a real span. |
 | `Target Close Date` | No | date | `YYYY-MM-DD` recommended | Pandas will parse most common date formats, but ISO (`2026-09-01`) is the only one guaranteed unambiguous. Blank = no date. Drives the Fundraising Timeline sort/chart. |
@@ -45,6 +45,7 @@ A blank, correctly-headed starting point is checked in at
 | `Forward Calendar Order: Gaucho` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Gaucho's own Forward Calendar. Same format as `Forward Calendar Order: Global`. |
 | `Forward Calendar Order: Ursa Major` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Ursa Major's own Forward Calendar. Same format as `Forward Calendar Order: Global`. |
 | `Forward Calendar Order: Orion` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Orion's own Forward Calendar. Same format as `Forward Calendar Order: Global`. |
+| `Due Diligence (DD)` | No | text (pick one) | `Expected`, `In Progress (GIR)`, `In Progress (Team Olympus)`, `Complete`, `Unplanned` | Where due diligence stands for the firm. Has a fixed-list sidebar filter, same rules as `Stage`/`Asset Class`/`Source`/`Fundraising Status` (see "Values outside the fixed lists" below). |
 | `Access` | No | free text | e.g. `Strong`, `Medium`, `Weak`, or blank | Conviction sub-score; not populated in the seed data. |
 | `Track Record` | No | free text | e.g. `Strong`, `Medium`, `Weak`, or blank | Conviction sub-score; not populated in the seed data. |
 | `Type of Risk` | No | free text | — | Conviction sub-score; not populated in the seed data. |
@@ -62,18 +63,20 @@ aren't validated.
 
 ## Values outside the fixed lists
 
-`Stage`, `Asset Class`, `Source`, and `Fundraising Status` populate their
-sidebar filter dropdowns from a **fixed list** (the "Allowed values" above),
-not from whatever's actually in the data. A row with a value outside that
-list won't crash anything and will still display in unfiltered views, but:
+`Stage`, `Asset Class`, `Source`, `Fundraising Status`, and `Due Diligence
+(DD)` populate their sidebar filter dropdowns from a **fixed list** (the
+"Allowed values" above), not from whatever's actually in the data. A row
+with a value outside that list won't crash anything and will still display
+in unfiltered views, but:
 
 - it can't be selected via that field's sidebar filter,
 - it won't necessarily line up with the color/order conventions the charts
   use (e.g. the conviction ordering and colors are keyed off the exact
   `Stage` strings).
 
-`Geography` is the exception — its sidebar filter is built from whatever
-values are present in the data, so off-list geographies still work fully.
+`Geography`, `Sector`, and `HQ` are the exception — their sidebar filters are
+built from whatever values are present in the data, so off-list values still
+work fully there.
 
 `Clients Invested` values outside `Olympus Mons`/`Gaucho`/`Ursa Major`/`Orion`
 are kept in the data (nothing is dropped) but can never match any client
@@ -82,15 +85,15 @@ metric. The upload flow warns about this rather than rejecting the file.
 
 **Recommendation for an agent generating this CSV:** always emit the exact
 strings from the "Allowed values" column above for `Stage`, `Asset Class`,
-`Source`, and `Fundraising Status`. Free-text columns (`Sub Asset Class`,
-`Sector`, `HQ`, `Commentary`, the conviction sub-scores) have no such
-constraint.
+`Source`, `Fundraising Status`, and `Due Diligence (DD)`. Free-text columns
+(`Sub Asset Class`, `Sector`, `HQ`, `Commentary`, the conviction sub-scores)
+have no such constraint.
 
 ## Example row
 
 ```csv
-Firm,Stage,Asset Class,Sub Asset Class,Sector,Geography,Clients Invested,Source,HQ,Fundraising Status,Raise Start Date,Target Close Date,Next Follow Up Date,Forward Calendar Order: Global,Forward Calendar Order: Olympus Mons,Forward Calendar Order: Gaucho,Forward Calendar Order: Ursa Major,Forward Calendar Order: Orion,Access,Track Record,Type of Risk,Execution/Strategy Adherence,Commentary,Last Updated
-Example Capital Partners,1. Core idea,Venture,Multi Stage,Generalist,US,Olympus Mons;Orion,GIR,New York,Raising - Early Stage,2026-07-01,2026-11-15,2026-09-01,,0,,,2,Strong,Strong,,,"Top idea, strong partnership, no near-term concerns",2026-07-23
+Firm,Stage,Asset Class,Sub Asset Class,Sector,Geography,Clients Invested,Source,HQ,Fundraising Status,Raise Start Date,Target Close Date,Next Follow Up Date,Forward Calendar Order: Global,Forward Calendar Order: Olympus Mons,Forward Calendar Order: Gaucho,Forward Calendar Order: Ursa Major,Forward Calendar Order: Orion,Due Diligence (DD),Access,Track Record,Type of Risk,Execution/Strategy Adherence,Commentary,Last Updated
+Example Capital Partners,1. Core idea,Venture,Multi Stage,Generalist,US,Olympus Mons;Orion,GIR,New York,Raising - Early Stage,2026-07-01,2026-11-15,2026-09-01,,0,,,2,In Progress (GIR),Strong,Strong,,,"Top idea, strong partnership, no near-term concerns",2026-07-23
 ```
 
 Minimal valid row (only the required column):

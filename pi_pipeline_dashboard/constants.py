@@ -61,6 +61,14 @@ FUNDRAISING_STATUS_OPTIONS = [
 
 CONVICTION_SCORE_OPTIONS = ["", "Strong", "Medium", "Weak"]
 
+DD_STATUS_OPTIONS = [
+    "Expected",
+    "In Progress (GIR)",
+    "In Progress (Team Olympus)",
+    "Complete",
+    "Unplanned",
+]
+
 # Which clients can be marked invested in a firm. "Global" is not a real
 # client for investment purposes - it's the sentinel for "don't restrict to
 # one client" in the top-left client-view selector. It DOES get its own
@@ -97,6 +105,7 @@ COLUMNS = [
     "Target Close Date",
     "Next Follow Up Date",
     *FORWARD_CAL_ORDER_COLUMNS,
+    "Due Diligence (DD)",
     "Access",
     "Track Record",
     "Type of Risk",

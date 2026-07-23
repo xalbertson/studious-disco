@@ -17,6 +17,7 @@ from constants import (
     CATEGORICAL_SEQUENCE,
     CLIENT_OPTIONS,
     DATA_PATH,
+    DD_STATUS_OPTIONS,
     FORWARD_CAL_SORT_OPTIONS,
     FUNDRAISING_STATUS_OPTIONS,
     GEOGRAPHY_OPTIONS,
@@ -147,6 +148,7 @@ with tab_entry:
         "Geography": st.column_config.SelectboxColumn(options=GEOGRAPHY_OPTIONS),
         "Source": st.column_config.SelectboxColumn(options=SOURCE_OPTIONS),
         "Fundraising Status": st.column_config.SelectboxColumn(options=FUNDRAISING_STATUS_OPTIONS),
+        "Due Diligence (DD)": st.column_config.SelectboxColumn(options=DD_STATUS_OPTIONS),
         "Clients Invested": st.column_config.ListColumn(
             help=f"Zero or more of: {', '.join(CLIENT_OPTIONS)}"
         ),
@@ -203,7 +205,11 @@ st.sidebar.caption("Applies to the exhibit tabs (not Data Entry).")
 
 f_stage = st.sidebar.multiselect("Stage / Conviction", STAGE_OPTIONS)
 f_asset = st.sidebar.multiselect("Asset Class", ASSET_CLASS_OPTIONS)
+f_sector = st.sidebar.multiselect("Sector", sorted([s for s in df["Sector"].unique() if s]))
 f_geo = st.sidebar.multiselect("Geography", sorted([g for g in df["Geography"].unique() if g]))
+f_hq = st.sidebar.multiselect("HQ", sorted([h for h in df["HQ"].unique() if h]))
+f_source = st.sidebar.multiselect("Source", SOURCE_OPTIONS)
+f_dd = st.sidebar.multiselect("Due Diligence (DD)", DD_STATUS_OPTIONS)
 f_fundraising = st.sidebar.multiselect("Fundraising Status", FUNDRAISING_STATUS_OPTIONS)
 invested_label = (
     "Client invested (any)?" if global_client == GLOBAL_CLIENT else f"{global_client} invested?"
@@ -216,8 +222,16 @@ if f_stage:
     filtered = filtered[filtered["Stage"].isin(f_stage)]
 if f_asset:
     filtered = filtered[filtered["Asset Class"].isin(f_asset)]
+if f_sector:
+    filtered = filtered[filtered["Sector"].isin(f_sector)]
 if f_geo:
     filtered = filtered[filtered["Geography"].isin(f_geo)]
+if f_hq:
+    filtered = filtered[filtered["HQ"].isin(f_hq)]
+if f_source:
+    filtered = filtered[filtered["Source"].isin(f_source)]
+if f_dd:
+    filtered = filtered[filtered["Due Diligence (DD)"].isin(f_dd)]
 if f_fundraising:
     filtered = filtered[filtered["Fundraising Status"].isin(f_fundraising)]
 if f_invested == "Yes":
@@ -237,7 +251,11 @@ active_filters = {
     "Client view": global_client,
     "Stage": f_stage,
     "Asset Class": f_asset,
+    "Sector": f_sector,
     "Geography": f_geo,
+    "HQ": f_hq,
+    "Source": f_source,
+    "Due Diligence (DD)": f_dd,
     "Fundraising Status": f_fundraising,
     invested_label: None if f_invested == "All" else f_invested,
     "Search": f_search,
