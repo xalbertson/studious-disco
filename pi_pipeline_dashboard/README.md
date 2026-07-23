@@ -43,6 +43,11 @@ hidden while editing.
 
 ## Bulk import
 
+See [`CSV_UPLOAD_FORMAT.md`](CSV_UPLOAD_FORMAT.md) for the full column
+reference (required/optional fields, allowed values for `Stage`, `Asset
+Class`, `Geography`, etc., date/boolean formatting) — useful if you're
+generating an upload CSV programmatically rather than filling it in by hand.
+
 Open **📥 Start from a blank template or bulk-upload a CSV** at the top of the
 Data Entry tab:
 
