@@ -179,10 +179,11 @@ additions:
 
 ## Notes
 
-- All 101 firms from the source workbook are preloaded in
-  `data/pipeline_data.csv`. A blank version of the same schema is checked in
-  at `data/pipeline_template_blank.csv` for anyone who wants a template
-  without launching the app.
+- `data/pipeline_data.csv` ships preloaded with 350 synthetic, fictionally-named
+  sample funds (randomly generated, not real firms) so the app has something
+  to demo against out of the box. A blank version of the same schema is
+  checked in at `data/pipeline_template_blank.csv` for anyone who wants a
+  template without launching the app.
 - The CSV is plain text, so it diffs cleanly in git if you want to version
   pipeline changes over time.
 
