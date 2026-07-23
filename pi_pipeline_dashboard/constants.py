@@ -74,6 +74,7 @@ COLUMNS = [
     "Fundraising Status",
     "Target Close Date",
     "Next Follow Up Date",
+    "On Forward Calendar",
     "Access",
     "Track Record",
     "Type of Risk",
@@ -83,6 +84,7 @@ COLUMNS = [
 ]
 
 DATE_COLUMNS = ["Target Close Date", "Next Follow Up Date", "Last Updated"]
+BOOLEAN_COLUMNS = ["Client Invested", "On Forward Calendar"]
 
 # Validated categorical palette (dataviz skill default), fixed order - never cycled.
 PALETTE = {

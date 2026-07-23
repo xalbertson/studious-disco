@@ -4,10 +4,12 @@ Run with: streamlit run app.py
 """
 
 import datetime as dt
+import hashlib
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from streamlit_sortables import sort_items
 
 from constants import (
     ASSET_CLASS_OPTIONS,
@@ -36,7 +38,15 @@ def refresh():
 
 st.title("PI Pipeline Dashboard")
 
-tab_entry, tab_overview, tab_conviction, tab_geo, tab_asset, tab_fundraising = st.tabs(
+(
+    tab_entry,
+    tab_overview,
+    tab_conviction,
+    tab_geo,
+    tab_asset,
+    tab_fundraising,
+    tab_forward_cal,
+) = st.tabs(
     [
         "📋 Data Entry",
         "📊 Overview",
@@ -44,6 +54,7 @@ tab_entry, tab_overview, tab_conviction, tab_geo, tab_asset, tab_fundraising = s
         "🌍 By Geography",
         "🏢 By Asset Class",
         "📅 Fundraising Timeline",
+        "🗓️ Forward Calendar",
     ]
 )
 
@@ -109,6 +120,9 @@ with tab_entry:
             "Client Invested": st.column_config.CheckboxColumn("Client Invested?"),
             "Target Close Date": st.column_config.DateColumn(),
             "Next Follow Up Date": st.column_config.DateColumn(),
+            "On Forward Calendar": st.column_config.CheckboxColumn(
+                "On Forward Calendar?", help="Also settable by dragging in the Forward Calendar tab."
+            ),
             "Last Updated": st.column_config.DateColumn(),
             "Commentary": st.column_config.TextColumn(width="large"),
         },
@@ -219,7 +233,7 @@ with tab_conviction:
             color_discrete_sequence=CATEGORICAL_SEQUENCE,
         )
         fig.update_layout(legend_title_text="Asset Class", xaxis_title=None, yaxis_title="Firms")
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, width='stretch', key="chart_conviction")
 
         cats = [s for s in STAGE_OPTIONS if s in counts["Stage"].unique()]
         pivot = counts.pivot(index="Stage", columns="Asset Class", values="Count").reindex(cats).fillna(0)
@@ -267,7 +281,7 @@ with tab_geo:
             color_discrete_sequence=[SEQUENTIAL_BLUE],
         )
         fig.update_layout(xaxis_title=None, yaxis_title="Firms", showlegend=False)
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, width='stretch', key="chart_geography")
 
         st.download_button(
             "⬇️ Export exhibit to PPTX",
@@ -312,7 +326,7 @@ with tab_asset:
             color_discrete_sequence=[SEQUENTIAL_BLUE],
         )
         fig.update_layout(xaxis_title=None, yaxis_title="Firms", showlegend=False)
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, width='stretch', key="chart_asset_class")
 
         st.download_button(
             "⬇️ Export exhibit to PPTX",
@@ -363,7 +377,7 @@ with tab_fundraising:
             color_discrete_sequence=[SEQUENTIAL_BLUE],
         )
         fig.update_layout(xaxis_title=None, yaxis_title="Firms", showlegend=False)
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, width='stretch', key="chart_fundraising_status")
 
         st.download_button(
             "⬇️ Export exhibit to PPTX",
@@ -393,7 +407,7 @@ with tab_fundraising:
             color_discrete_map=STAGE_COLOR_MAP,
         )
         fig2.update_yaxes(autorange="reversed", title=None)
-        st.plotly_chart(fig2, width='stretch')
+        st.plotly_chart(fig2, width='stretch', key="chart_fundraising_gantt")
 
     st.subheader("Firms sorted by target close date")
     st.dataframe(
@@ -403,3 +417,106 @@ with tab_fundraising:
         width='stretch',
         height=450,
     )
+
+# ---------------------------------------------------------------------------
+# Forward Calendar
+# ---------------------------------------------------------------------------
+with tab_forward_cal:
+    st.subheader("Forward Calendar")
+    st.caption(
+        "Drag firms from **Filtered results** (driven by the sidebar filters) into "
+        "**Forward Calendar** to build a curated set. Membership persists across "
+        "filter changes - e.g. filter for one search, drag a few in, change the "
+        "filter to a different search, drag more in. Drag an item back out to "
+        "remove it."
+    )
+
+    all_firms_df = st.session_state.df
+    calendar_items = sorted(all_firms_df.loc[all_firms_df["On Forward Calendar"], "Firm"].tolist())
+    source_items = sorted(filtered.loc[~filtered["On Forward Calendar"], "Firm"].tolist())
+
+    # Force a fresh mount whenever the true persisted state or the sidebar
+    # filter changes, so the board always opens showing the current truth
+    # rather than stale drag state from a previous mount.
+    fingerprint = hashlib.md5(
+        ("|".join(source_items) + "::" + "|".join(calendar_items)).encode()
+    ).hexdigest()[:12]
+
+    board = sort_items(
+        [
+            {"header": f"🔍 Filtered results ({len(source_items)})", "items": source_items},
+            {"header": f"🗓️ Forward Calendar ({len(calendar_items)})", "items": calendar_items},
+        ],
+        multi_containers=True,
+        key=f"forward_cal_board_{fingerprint}",
+    )
+
+    new_calendar_set = set(board[1]["items"])
+    old_calendar_set = set(calendar_items)
+    added = new_calendar_set - old_calendar_set
+    removed = old_calendar_set - new_calendar_set
+
+    if added or removed:
+        updated = all_firms_df.copy()
+        updated.loc[updated["Firm"].isin(added), "On Forward Calendar"] = True
+        updated.loc[updated["Firm"].isin(removed), "On Forward Calendar"] = False
+        save_data(updated)
+        st.session_state.df = load_data()
+        st.rerun()
+
+    st.divider()
+
+    cal_df = st.session_state.df[st.session_state.df["On Forward Calendar"]].copy()
+    if cal_df.empty:
+        st.info("Nothing on the Forward Calendar yet - drag firms in above.")
+    else:
+        if st.button("🗑️ Clear Forward Calendar"):
+            cleared = st.session_state.df.copy()
+            cleared["On Forward Calendar"] = False
+            save_data(cleared)
+            st.session_state.df = load_data()
+            st.rerun()
+
+        has_dates = cal_df["Target Close Date"].notna()
+        with_dates = cal_df[has_dates].sort_values("Target Close Date")
+        without_dates = cal_df[~has_dates].sort_values("Firm")
+
+        if not with_dates.empty:
+            fig = px.timeline(
+                with_dates.assign(_end=with_dates["Target Close Date"] + pd.Timedelta(days=1)),
+                x_start="Target Close Date",
+                x_end="_end",
+                y="Firm",
+                color="Stage",
+                category_orders={"Stage": STAGE_OPTIONS},
+                color_discrete_map=STAGE_COLOR_MAP,
+            )
+            fig.update_yaxes(autorange="reversed", title=None)
+            st.plotly_chart(fig, width='stretch', key="chart_forward_calendar_gantt")
+
+        display_cols = [
+            "Firm",
+            "Stage",
+            "Asset Class",
+            "Geography",
+            "Fundraising Status",
+            "Target Close Date",
+            "Commentary",
+        ]
+
+        st.subheader("By quarter")
+        if with_dates.empty:
+            st.caption("No Forward Calendar firms have a Target Close Date yet.")
+        else:
+            with_dates = with_dates.assign(
+                _quarter=with_dates["Target Close Date"].dt.to_period("Q").astype(str)
+            )
+            for quarter in sorted(with_dates["_quarter"].unique()):
+                grp = with_dates[with_dates["_quarter"] == quarter].sort_values("Target Close Date")
+                st.markdown(f"**{quarter}** ({len(grp)})")
+                st.dataframe(grp[display_cols].reset_index(drop=True), width='stretch')
+
+        if not without_dates.empty:
+            st.markdown(f"**Unscheduled** ({len(without_dates)})")
+            st.caption("Set a Target Close Date in Data Entry to place these on the calendar.")
+            st.dataframe(without_dates[display_cols].reset_index(drop=True), width='stretch')

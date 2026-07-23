@@ -39,6 +39,7 @@ A blank, correctly-headed starting point is checked in at
 | `Fundraising Status` | No | text (pick one) | `Unknown`, `Not Currently Raising`, `Raising - Early Stage`, `Raising - Final Close`, `Recently Closed` | Drives the Fundraising Timeline exhibit's status breakdown. |
 | `Target Close Date` | No | date | `YYYY-MM-DD` recommended | Pandas will parse most common date formats, but ISO (`2026-09-01`) is the only one guaranteed unambiguous. Blank = no date. Drives the Fundraising Timeline sort/chart. |
 | `Next Follow Up Date` | No | date | `YYYY-MM-DD` recommended | Same format rules as `Target Close Date`. |
+| `On Forward Calendar` | No | boolean | `True`/`False`, `Y`/`N`, `Yes`/`No`, `1`/`0` (case-insensitive) | Whether the firm is on the manually-curated Forward Calendar exhibit. Normally set by dragging in the Forward Calendar tab, not by CSV — but settable here too if pre-populating a calendar. |
 | `Access` | No | free text | e.g. `Strong`, `Medium`, `Weak`, or blank | Conviction sub-score; not populated in the seed data. |
 | `Track Record` | No | free text | e.g. `Strong`, `Medium`, `Weak`, or blank | Conviction sub-score; not populated in the seed data. |
 | `Type of Risk` | No | free text | — | Conviction sub-score; not populated in the seed data. |
@@ -70,8 +71,8 @@ constraint.
 ## Example row
 
 ```csv
-Firm,Stage,Asset Class,Sub Asset Class,Sector,Geography,Client Invested,Source,HQ,Fundraising Status,Target Close Date,Next Follow Up Date,Access,Track Record,Type of Risk,Execution/Strategy Adherence,Commentary,Last Updated
-Example Capital Partners,1. Core idea,Venture,Multi Stage,Generalist,US,Y,GIR,New York,Raising - Early Stage,2026-11-15,2026-09-01,Strong,Strong,,,"Top idea, strong partnership, no near-term concerns",2026-07-23
+Firm,Stage,Asset Class,Sub Asset Class,Sector,Geography,Client Invested,Source,HQ,Fundraising Status,Target Close Date,Next Follow Up Date,On Forward Calendar,Access,Track Record,Type of Risk,Execution/Strategy Adherence,Commentary,Last Updated
+Example Capital Partners,1. Core idea,Venture,Multi Stage,Generalist,US,Y,GIR,New York,Raising - Early Stage,2026-11-15,2026-09-01,N,Strong,Strong,,,"Top idea, strong partnership, no near-term concerns",2026-07-23
 ```
 
 Minimal valid row (only the required column):

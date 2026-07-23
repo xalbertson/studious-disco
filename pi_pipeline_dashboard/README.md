@@ -35,11 +35,34 @@ browser never reaches it — see the note at the bottom of this file.
   asset class / sub asset class.
 - **Fundraising Timeline** — firms sorted by target close date, with a bar of
   fundraising status and a timeline chart once dates are entered.
+- **Forward Calendar** — a manually curated set of firms, built by
+  drag-and-drop rather than by filtering. See below.
 
 A filter panel in the sidebar (stage, asset class, geography, fundraising
 status, client-invested, and a text search) applies to every exhibit tab.
 The Data Entry tab always shows the full, unfiltered dataset so nothing is
 hidden while editing.
+
+## Forward Calendar
+
+Unlike the other exhibits, which just show whatever the sidebar filters
+currently match, the Forward Calendar is a **manually curated** set of firms
+that persists independent of the filters:
+
+1. Filter the sidebar down to whatever you're looking for (e.g. search "US"
+   in Geography, or a Stage), open the **Forward Calendar** tab, and drag a
+   few firms from **Filtered results** into **Forward Calendar**.
+2. Change the sidebar filters to a different search (e.g. a different
+   geography) and drag more firms in — the calendar keeps everything already
+   added, regardless of what the filter currently shows.
+3. Drag a firm out of **Forward Calendar** (back into **Filtered results**)
+   to remove it, or use **Clear Forward Calendar** to empty it entirely.
+
+Membership is stored as an `On Forward Calendar` column on each firm (also
+editable directly as a checkbox in Data Entry), so it survives app restarts.
+Below the drag-and-drop board, calendar members are grouped by quarter of
+their **Target Close Date** (firms without one land in **Unscheduled**), with
+a Gantt-style timeline above the groups once at least one has a date set.
 
 ## Bulk import
 

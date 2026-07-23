@@ -3,7 +3,7 @@
 import os
 import pandas as pd
 
-from constants import COLUMNS, DATE_COLUMNS, DATA_PATH
+from constants import BOOLEAN_COLUMNS, COLUMNS, DATE_COLUMNS, DATA_PATH
 
 
 def _normalize(df: pd.DataFrame) -> pd.DataFrame:
@@ -12,7 +12,8 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = ""
 
-    df["Client Invested"] = df["Client Invested"].apply(_to_bool)
+    for col in BOOLEAN_COLUMNS:
+        df[col] = df[col].apply(_to_bool)
 
     for col in DATE_COLUMNS:
         df[col] = pd.to_datetime(df[col], errors="coerce")
@@ -55,7 +56,8 @@ def save_data(df: pd.DataFrame, path: str = DATA_PATH) -> None:
     out = out[out["Firm"].astype(str).str.strip() != ""]
     for col in DATE_COLUMNS:
         out[col] = pd.to_datetime(out[col], errors="coerce").dt.strftime("%Y-%m-%d").fillna("")
-    out["Client Invested"] = out["Client Invested"].apply(lambda v: bool(v))
+    for col in BOOLEAN_COLUMNS:
+        out[col] = out[col].apply(lambda v: bool(v))
     out.to_csv(path, index=False)
 
 
