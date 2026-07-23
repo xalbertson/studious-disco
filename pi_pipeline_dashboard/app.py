@@ -603,15 +603,38 @@ with tab_forward_cal:
                 category_orders={"Stage": STAGE_OPTIONS, "Firm": chart_firm_order},
                 color_discrete_map=STAGE_COLOR_MAP,
             )
-            fig.update_yaxes(autorange="reversed", title=None)
+            fig.update_yaxes(title=None)
 
             if group_col:
-                # A dashed divider line wherever the group changes, so it's clear
-                # where one Asset Class / Conviction block ends and the next begins.
+                # A labeled divider above each Asset Class / Conviction block, so
+                # it's clear which group each set of bars belongs to. Plotly
+                # resolves a *named* category correctly for annotations, but a
+                # raw numeric y is mirrored relative to category_orders - so the
+                # divider line (which needs a boundary, not a named category)
+                # has to compensate with (N - 0.5 - position).
                 group_values = with_dates[group_col].tolist()
-                for i in range(1, len(group_values)):
-                    if group_values[i] != group_values[i - 1]:
-                        fig.add_hline(y=i - 0.5, line_width=1, line_dash="dot", line_color="gray")
+                n = len(group_values)
+                block_start = 0
+                for i in range(1, n + 1):
+                    if i == n or group_values[i] != group_values[i - 1]:
+                        fig.add_annotation(
+                            x=0,
+                            xref="x domain",
+                            xanchor="left",
+                            y=chart_firm_order[block_start],
+                            yref="y",
+                            yanchor="bottom",
+                            text=f"<b>{group_values[block_start] or '(blank)'}</b>",
+                            showarrow=False,
+                            font=dict(size=12, color="#52514e"),
+                            bgcolor="rgba(255,255,255,0.85)",
+                            align="left",
+                        )
+                        if block_start > 0:
+                            fig.add_hline(
+                                y=n - 0.5 - block_start, line_width=1, line_dash="dot", line_color="gray"
+                            )
+                        block_start = i
 
             st.plotly_chart(fig, width='stretch', key="chart_forward_calendar_gantt")
 
