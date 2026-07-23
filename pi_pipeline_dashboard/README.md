@@ -34,7 +34,10 @@ browser never reaches it — see the note at the bottom of this file.
 - **By Asset Class** — firm counts by asset class, plus a table sorted by
   asset class / sub asset class.
 - **Fundraising Timeline** — firms sorted by target close date, with a bar of
-  fundraising status and a timeline chart once dates are entered.
+  fundraising status and a Gantt-style chart once dates are entered. Bars span
+  each firm's actual raise window (`Raise Start Date` to `Target Close
+  Date`); a firm with only a `Target Close Date` gets a one-day marker
+  instead of a real span.
 - **Forward Calendar** — a manually curated set of firms, built by
   drag-and-drop rather than by filtering. See below.
 
@@ -110,10 +113,12 @@ Asset Class`, `Sector`, `Geography`, `Client Invested`, `Source`,
 - `HQ`, `Access`, `Track Record`, `Type of Risk`, `Execution/Strategy
   Adherence` — columns present as empty headers in the source workbook, kept
   here for the team to fill in as conviction sub-scores.
-- `Fundraising Status`, `Target Close Date`, `Next Follow Up Date` — the
-  source workbook had no fundraising-timeline tracking at all, so these are
-  new fields, blank for existing firms. Populate them going forward to make
-  the Fundraising Timeline tab useful.
+- `Fundraising Status`, `Raise Start Date`, `Target Close Date`, `Next
+  Follow Up Date` — the source workbook had no fundraising-timeline tracking
+  at all, so these are new fields, blank for existing firms. Populate them
+  going forward to make the Fundraising Timeline tab useful; `Raise Start
+  Date` + `Target Close Date` together are what let its Gantt bars show the
+  real length of a raise instead of a one-day marker.
 - `Last Updated` — auto-set to today's date whenever a row is edited and
   saved.
 

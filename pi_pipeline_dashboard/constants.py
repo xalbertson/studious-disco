@@ -72,6 +72,7 @@ COLUMNS = [
     "Source",
     "HQ",
     "Fundraising Status",
+    "Raise Start Date",
     "Target Close Date",
     "Next Follow Up Date",
     "On Forward Calendar",
@@ -83,7 +84,7 @@ COLUMNS = [
     "Last Updated",
 ]
 
-DATE_COLUMNS = ["Target Close Date", "Next Follow Up Date", "Last Updated"]
+DATE_COLUMNS = ["Raise Start Date", "Target Close Date", "Next Follow Up Date", "Last Updated"]
 BOOLEAN_COLUMNS = ["Client Invested", "On Forward Calendar"]
 
 # Validated categorical palette (dataviz skill default), fixed order - never cycled.

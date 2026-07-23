@@ -36,6 +36,20 @@ def refresh():
     st.session_state.df = load_data()
 
 
+def gantt_bars(df: pd.DataFrame) -> pd.DataFrame:
+    """Bar span = Raise Start Date -> Target Close Date where both are set.
+
+    Falls back to a one-day sliver at Target Close Date when there's no
+    (valid) start date, so rows with partial data still show up.
+    """
+    out = df.copy()
+    out["_start"] = out["Raise Start Date"].fillna(out["Target Close Date"])
+    out["_end"] = out["Target Close Date"]
+    no_real_span = out["_start"] >= out["_end"]
+    out.loc[no_real_span, "_end"] = out.loc[no_real_span, "_start"] + pd.Timedelta(days=1)
+    return out
+
+
 st.title("PI Pipeline Dashboard")
 
 (
@@ -118,6 +132,7 @@ with tab_entry:
             "Source": st.column_config.SelectboxColumn(options=SOURCE_OPTIONS),
             "Fundraising Status": st.column_config.SelectboxColumn(options=FUNDRAISING_STATUS_OPTIONS),
             "Client Invested": st.column_config.CheckboxColumn("Client Invested?"),
+            "Raise Start Date": st.column_config.DateColumn(),
             "Target Close Date": st.column_config.DateColumn(),
             "Next Follow Up Date": st.column_config.DateColumn(),
             "On Forward Calendar": st.column_config.CheckboxColumn(
@@ -355,8 +370,10 @@ with tab_fundraising:
     st.subheader("Fundraising timeline")
     st.caption(
         "The source pipeline didn't track fundraising timelines. Use the Data Entry "
-        "tab to set **Fundraising Status** and **Target Close Date** per firm; this "
-        "view populates as that data comes in."
+        "tab to set **Fundraising Status**, **Raise Start Date**, and **Target Close "
+        "Date** per firm; this view populates as that data comes in. Bars span the "
+        "actual raise window (Raise Start Date to Target Close Date) where both are "
+        "set."
     )
 
     has_dates = filtered["Target Close Date"].notna()
@@ -396,10 +413,8 @@ with tab_fundraising:
         st.info("No target close dates entered yet.")
     else:
         fig2 = px.timeline(
-            with_dates.assign(
-                _end=with_dates["Target Close Date"] + pd.Timedelta(days=1)
-            ),
-            x_start="Target Close Date",
+            gantt_bars(with_dates),
+            x_start="_start",
             x_end="_end",
             y="Firm",
             color="Stage",
@@ -483,8 +498,8 @@ with tab_forward_cal:
 
         if not with_dates.empty:
             fig = px.timeline(
-                with_dates.assign(_end=with_dates["Target Close Date"] + pd.Timedelta(days=1)),
-                x_start="Target Close Date",
+                gantt_bars(with_dates),
+                x_start="_start",
                 x_end="_end",
                 y="Firm",
                 color="Stage",
@@ -500,6 +515,7 @@ with tab_forward_cal:
             "Asset Class",
             "Geography",
             "Fundraising Status",
+            "Raise Start Date",
             "Target Close Date",
             "Commentary",
         ]
