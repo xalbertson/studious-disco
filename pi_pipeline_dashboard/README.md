@@ -19,11 +19,26 @@ edited in place from the app (or by hand, since it's a plain CSV).
 Running behind a remote Jupyter/JupyterHub server? `localhost` in your
 browser never reaches it — see the note at the bottom of this file.
 
+## Client view
+
+A **Client view** selector sits in the top-left corner of the page, above the
+title: **Global** plus one entry per client (`Olympus Mons`, `Gaucho`, `Ursa
+Major`, `Orion`). It controls what "Client Invested" means everywhere else in
+the app — the sidebar filter, the Overview metric, and PPTX footnotes:
+
+- Pick a specific client and "Client Invested" checks whether *that* client
+  is in the firm's `Clients Invested` list.
+- Pick **Global** and "Client Invested" means *any* client is in the list.
+
+This is a page-level setting, not a per-tab filter — it's meant for building
+out one client's view of the pipeline at a time (see Forward Calendar below).
+
 ## Tabs
 
 - **Data Entry** — an editable grid of every firm (add rows, edit in place,
-  delete rows), with dropdowns for the categorical fields. Click **Save
-  changes** to write back to the CSV.
+  delete rows), with dropdowns for the categorical fields and a tag/chip
+  editor for `Clients Invested`. Click **Save changes** to write back to the
+  CSV.
 - **Overview** — headline counts and the full firm list.
 - **By Conviction** — firm counts by Stage (the pipeline's conviction ranking:
   `1. Top emerging idea` / `1. Core idea` > `2. Evaluate` > `3. Follow
@@ -59,13 +74,27 @@ that persists independent of the filters:
    geography) and drag more firms in — the calendar keeps everything already
    added, regardless of what the filter currently shows.
 3. Drag a firm out of **Forward Calendar** (back into **Filtered results**)
-   to remove it, or use **Clear Forward Calendar** to empty it entirely.
+   to remove it, drag within **Forward Calendar** to reorder it, or use
+   **Clear Forward Calendar** to empty it entirely.
 
-Membership is stored as an `On Forward Calendar` column on each firm (also
-editable directly as a checkbox in Data Entry), so it survives app restarts.
-Below the drag-and-drop board, calendar members are grouped by quarter of
-their **Target Close Date** (firms without one land in **Unscheduled**), with
-a Gantt-style timeline above the groups once at least one has a date set.
+Membership *and* its custom order are stored in a single `Forward Calendar
+Order` column on each firm (blank = not on the calendar; `0`, `1`, `2`, …
+otherwise), so both survive app restarts. It's also editable directly as a
+number in Data Entry, though dragging is the normal way to set it.
+
+Below the drag-and-drop board, a **Sort by** toggle controls the order of the
+Gantt chart and the table beneath it: **Custom order** (default — matches
+however you last arranged the drag board), **Asset Class**, **Conviction**,
+or **Fundraising Start Date**. Switching sort modes doesn't touch the
+underlying custom order — it's purely a different way to view the same set
+of firms.
+
+Combine this with **Client view**: switch to a specific client, filter the
+sidebar, and drag that client's positions into the calendar — then switch to
+a different client and repeat, building a per-client forward calendar in the
+same shared list (there's one Forward Calendar per pipeline, not one per
+client — switching Client view only changes filtering/metrics, not calendar
+membership).
 
 ## Bulk import
 
@@ -96,9 +125,10 @@ own deck) containing:
   Excel worksheet** (double-click the chart in PowerPoint → "Edit Data in
   Excel" to see/edit the underlying numbers, same as any chart built directly
   in PowerPoint), and
-- a **footnote** listing whichever sidebar filters were active and the firm
-  count, e.g. `Filters: Stage = 1. Core idea, 2. Evaluate | n = 12 firms |
-  Generated 2026-07-23`, so the export is self-documenting.
+- a **footnote** listing the active Client view, whichever sidebar filters
+  were active, and the firm count, e.g. `Filters: Client view = Orion; Stage
+  = 1. Core idea, 2. Evaluate | n = 12 firms | Generated 2026-07-23`, so the
+  export is self-documenting.
 
 The Fundraising Timeline tab's Gantt-style chart isn't exported — a timeline
 isn't a standard Excel/PowerPoint chart type, so that tab exports its
@@ -107,9 +137,16 @@ fundraising-status bar chart instead.
 ## Data model
 
 Seeded from the source pipeline workbook (`Firm`, `Stage`, `Asset Class`, `Sub
-Asset Class`, `Sector`, `Geography`, `Client Invested`, `Source`,
-`Commentary`), plus these additions:
+Asset Class`, `Sector`, `Geography`, `Source`, `Commentary`), plus these
+additions:
 
+- `Clients Invested` — a list of zero or more of `Olympus Mons`, `Gaucho`,
+  `Ursa Major`, `Orion` (stored as a `;`-joined string in the CSV; edited as
+  tags/chips in Data Entry). Replaces the source workbook's single
+  `Client Invested` yes/no column now that there's more than one client to
+  track — see [`CSV_UPLOAD_FORMAT.md`](CSV_UPLOAD_FORMAT.md) for the exact
+  format. Existing firms were migrated to blank, since the source data had no
+  way to say *which* client was invested.
 - `HQ`, `Access`, `Track Record`, `Type of Risk`, `Execution/Strategy
   Adherence` — columns present as empty headers in the source workbook, kept
   here for the team to fill in as conviction sub-scores.
@@ -119,6 +156,9 @@ Asset Class`, `Sector`, `Geography`, `Client Invested`, `Source`,
   going forward to make the Fundraising Timeline tab useful; `Raise Start
   Date` + `Target Close Date` together are what let its Gantt bars show the
   real length of a raise instead of a one-day marker.
+- `Forward Calendar Order` — blank, or an integer giving the firm's position
+  in the Forward Calendar's custom drag order. See the Forward Calendar
+  section above.
 - `Last Updated` — auto-set to today's date whenever a row is edited and
   saved.
 

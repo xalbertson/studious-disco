@@ -61,6 +61,15 @@ FUNDRAISING_STATUS_OPTIONS = [
 
 CONVICTION_SCORE_OPTIONS = ["", "Strong", "Medium", "Weak"]
 
+# Which clients can be marked invested in a firm. "Global" is not a real
+# client - it's the sentinel for "don't restrict to one client" in the
+# top-left client-view selector.
+CLIENT_OPTIONS = ["Olympus Mons", "Gaucho", "Ursa Major", "Orion"]
+GLOBAL_CLIENT = "Global"
+CLIENT_LIST_DELIMITER = ";"
+
+FORWARD_CAL_SORT_OPTIONS = ["Custom order", "Asset Class", "Conviction", "Fundraising Start Date"]
+
 COLUMNS = [
     "Firm",
     "Stage",
@@ -68,14 +77,14 @@ COLUMNS = [
     "Sub Asset Class",
     "Sector",
     "Geography",
-    "Client Invested",
+    "Clients Invested",
     "Source",
     "HQ",
     "Fundraising Status",
     "Raise Start Date",
     "Target Close Date",
     "Next Follow Up Date",
-    "On Forward Calendar",
+    "Forward Calendar Order",
     "Access",
     "Track Record",
     "Type of Risk",
@@ -85,7 +94,7 @@ COLUMNS = [
 ]
 
 DATE_COLUMNS = ["Raise Start Date", "Target Close Date", "Next Follow Up Date", "Last Updated"]
-BOOLEAN_COLUMNS = ["Client Invested", "On Forward Calendar"]
+LIST_COLUMNS = ["Clients Invested"]
 
 # Validated categorical palette (dataviz skill default), fixed order - never cycled.
 PALETTE = {

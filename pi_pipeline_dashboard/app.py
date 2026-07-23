@@ -14,16 +14,26 @@ from streamlit_sortables import sort_items
 from constants import (
     ASSET_CLASS_OPTIONS,
     CATEGORICAL_SEQUENCE,
+    CLIENT_OPTIONS,
     DATA_PATH,
+    FORWARD_CAL_SORT_OPTIONS,
     FUNDRAISING_STATUS_OPTIONS,
     GEOGRAPHY_OPTIONS,
+    GLOBAL_CLIENT,
     SEQUENTIAL_BLUE,
     SOURCE_OPTIONS,
     STAGE_COLOR_MAP,
     STAGE_OPTIONS,
     STAGE_RANK,
 )
-from data_utils import blank_template, load_data, parse_uploaded_csv, save_data, stage_sort_key
+from data_utils import (
+    blank_template,
+    client_invested_mask,
+    load_data,
+    parse_uploaded_csv,
+    save_data,
+    stage_sort_key,
+)
 from pptx_export import build_bar_chart_pptx, build_filter_footnote
 
 st.set_page_config(page_title="PI Pipeline Dashboard", layout="wide")
@@ -49,6 +59,15 @@ def gantt_bars(df: pd.DataFrame) -> pd.DataFrame:
     out.loc[no_real_span, "_end"] = out.loc[no_real_span, "_start"] + pd.Timedelta(days=1)
     return out
 
+
+top_left, _top_right = st.columns([1, 4])
+with top_left:
+    global_client = st.selectbox(
+        "Client view",
+        [GLOBAL_CLIENT] + CLIENT_OPTIONS,
+        key="global_client",
+        help="Controls what 'Client Invested' means everywhere in this app.",
+    )
 
 st.title("PI Pipeline Dashboard")
 
@@ -131,12 +150,20 @@ with tab_entry:
             "Geography": st.column_config.SelectboxColumn(options=GEOGRAPHY_OPTIONS),
             "Source": st.column_config.SelectboxColumn(options=SOURCE_OPTIONS),
             "Fundraising Status": st.column_config.SelectboxColumn(options=FUNDRAISING_STATUS_OPTIONS),
-            "Client Invested": st.column_config.CheckboxColumn("Client Invested?"),
+            "Clients Invested": st.column_config.ListColumn(
+                help=f"Zero or more of: {', '.join(CLIENT_OPTIONS)}"
+            ),
             "Raise Start Date": st.column_config.DateColumn(),
             "Target Close Date": st.column_config.DateColumn(),
             "Next Follow Up Date": st.column_config.DateColumn(),
-            "On Forward Calendar": st.column_config.CheckboxColumn(
-                "On Forward Calendar?", help="Also settable by dragging in the Forward Calendar tab."
+            "Forward Calendar Order": st.column_config.NumberColumn(
+                "Forward Calendar Order",
+                help=(
+                    "Blank = not on the Forward Calendar. Normally set by dragging "
+                    "in the Forward Calendar tab, not by hand."
+                ),
+                step=1,
+                format="%d",
             ),
             "Last Updated": st.column_config.DateColumn(),
             "Commentary": st.column_config.TextColumn(width="large"),
@@ -160,6 +187,7 @@ with tab_entry:
 # Shared sidebar filters for exhibit tabs
 # ---------------------------------------------------------------------------
 df = st.session_state.df
+df = df.assign(_client_invested=client_invested_mask(df, global_client, GLOBAL_CLIENT))
 
 st.sidebar.header("Filters")
 st.sidebar.caption("Applies to the exhibit tabs (not Data Entry).")
@@ -168,7 +196,10 @@ f_stage = st.sidebar.multiselect("Stage / Conviction", STAGE_OPTIONS)
 f_asset = st.sidebar.multiselect("Asset Class", ASSET_CLASS_OPTIONS)
 f_geo = st.sidebar.multiselect("Geography", sorted([g for g in df["Geography"].unique() if g]))
 f_fundraising = st.sidebar.multiselect("Fundraising Status", FUNDRAISING_STATUS_OPTIONS)
-f_invested = st.sidebar.selectbox("Client Invested?", ["All", "Yes", "No"])
+invested_label = (
+    "Client invested (any)?" if global_client == GLOBAL_CLIENT else f"{global_client} invested?"
+)
+f_invested = st.sidebar.selectbox(invested_label, ["All", "Yes", "No"])
 f_search = st.sidebar.text_input("Search firm / commentary")
 
 filtered = df.copy()
@@ -181,9 +212,9 @@ if f_geo:
 if f_fundraising:
     filtered = filtered[filtered["Fundraising Status"].isin(f_fundraising)]
 if f_invested == "Yes":
-    filtered = filtered[filtered["Client Invested"]]
+    filtered = filtered[filtered["_client_invested"]]
 elif f_invested == "No":
-    filtered = filtered[~filtered["Client Invested"]]
+    filtered = filtered[~filtered["_client_invested"]]
 if f_search:
     needle = f_search.lower()
     filtered = filtered[
@@ -194,11 +225,12 @@ if f_search:
 st.sidebar.caption(f"{len(filtered)} of {len(df)} firms shown")
 
 active_filters = {
+    "Client view": global_client,
     "Stage": f_stage,
     "Asset Class": f_asset,
     "Geography": f_geo,
     "Fundraising Status": f_fundraising,
-    "Client Invested": None if f_invested == "All" else f_invested,
+    invested_label: None if f_invested == "All" else f_invested,
     "Search": f_search,
 }
 
@@ -209,7 +241,10 @@ with tab_overview:
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Firms in view", len(filtered))
     c2.metric("Top conviction (Stage 1)", int((stage_sort_key(filtered) == 1).sum()))
-    c3.metric("Client invested", int(filtered["Client Invested"].sum()))
+    c3.metric(
+        "Client invested" if global_client == GLOBAL_CLIENT else f"{global_client} invested",
+        int(filtered["_client_invested"].sum()),
+    )
     c4.metric(
         "Currently raising",
         int(filtered["Fundraising Status"].isin(
@@ -443,12 +478,15 @@ with tab_forward_cal:
         "**Forward Calendar** to build a curated set. Membership persists across "
         "filter changes - e.g. filter for one search, drag a few in, change the "
         "filter to a different search, drag more in. Drag an item back out to "
-        "remove it."
+        "remove it, or reorder within Forward Calendar to set the custom order."
     )
 
     all_firms_df = st.session_state.df
-    calendar_items = sorted(all_firms_df.loc[all_firms_df["On Forward Calendar"], "Firm"].tolist())
-    source_items = sorted(filtered.loc[~filtered["On Forward Calendar"], "Firm"].tolist())
+    on_cal = all_firms_df["Forward Calendar Order"].notna()
+    calendar_items = (
+        all_firms_df.loc[on_cal].sort_values("Forward Calendar Order")["Firm"].tolist()
+    )
+    source_items = sorted(filtered.loc[~filtered["Forward Calendar Order"].notna(), "Firm"].tolist())
 
     # Force a fresh mount whenever the true persisted state or the sidebar
     # filter changes, so the board always opens showing the current truth
@@ -466,44 +504,68 @@ with tab_forward_cal:
         key=f"forward_cal_board_{fingerprint}",
     )
 
-    new_calendar_set = set(board[1]["items"])
-    old_calendar_set = set(calendar_items)
-    added = new_calendar_set - old_calendar_set
-    removed = old_calendar_set - new_calendar_set
-
-    if added or removed:
+    new_calendar_order = board[1]["items"]
+    if new_calendar_order != calendar_items:
+        order_map = {firm: i for i, firm in enumerate(new_calendar_order)}
         updated = all_firms_df.copy()
-        updated.loc[updated["Firm"].isin(added), "On Forward Calendar"] = True
-        updated.loc[updated["Firm"].isin(removed), "On Forward Calendar"] = False
+        updated["Forward Calendar Order"] = updated["Firm"].map(order_map)
         save_data(updated)
         st.session_state.df = load_data()
         st.rerun()
 
     st.divider()
 
-    cal_df = st.session_state.df[st.session_state.df["On Forward Calendar"]].copy()
+    cal_df = st.session_state.df[st.session_state.df["Forward Calendar Order"].notna()].copy()
     if cal_df.empty:
         st.info("Nothing on the Forward Calendar yet - drag firms in above.")
     else:
-        if st.button("🗑️ Clear Forward Calendar"):
-            cleared = st.session_state.df.copy()
-            cleared["On Forward Calendar"] = False
-            save_data(cleared)
-            st.session_state.df = load_data()
-            st.rerun()
+        sort_col, clear_col = st.columns([3, 1])
+        with sort_col:
+            sort_mode = st.radio(
+                "Sort by",
+                FORWARD_CAL_SORT_OPTIONS,
+                horizontal=True,
+                key="forward_cal_sort_mode",
+            )
+        with clear_col:
+            if st.button("🗑️ Clear Forward Calendar"):
+                cleared = st.session_state.df.copy()
+                cleared["Forward Calendar Order"] = float("nan")
+                save_data(cleared)
+                st.session_state.df = load_data()
+                st.rerun()
 
-        has_dates = cal_df["Target Close Date"].notna()
-        with_dates = cal_df[has_dates].sort_values("Target Close Date")
-        without_dates = cal_df[~has_dates].sort_values("Firm")
+        if sort_mode == "Custom order":
+            cal_sorted = cal_df.sort_values("Forward Calendar Order")
+        elif sort_mode == "Asset Class":
+            asset_rank = {a: i for i, a in enumerate(ASSET_CLASS_OPTIONS)}
+            cal_sorted = (
+                cal_df.assign(_r=cal_df["Asset Class"].map(lambda a: asset_rank.get(a, 99)))
+                .sort_values(["_r", "Firm"])
+                .drop(columns="_r")
+            )
+        elif sort_mode == "Conviction":
+            cal_sorted = (
+                cal_df.assign(_r=stage_sort_key(cal_df))
+                .sort_values(["_r", "Firm"])
+                .drop(columns="_r")
+            )
+        else:  # Fundraising Start Date
+            cal_sorted = cal_df.sort_values(["Raise Start Date", "Firm"], na_position="last")
 
-        if not with_dates.empty:
+        firm_order = cal_sorted["Firm"].tolist()
+        with_dates = cal_sorted[cal_sorted["Target Close Date"].notna()]
+
+        if with_dates.empty:
+            st.caption("No Forward Calendar firms have a Target Close Date yet - no Gantt chart to show.")
+        else:
             fig = px.timeline(
                 gantt_bars(with_dates),
                 x_start="_start",
                 x_end="_end",
                 y="Firm",
                 color="Stage",
-                category_orders={"Stage": STAGE_OPTIONS},
+                category_orders={"Stage": STAGE_OPTIONS, "Firm": firm_order},
                 color_discrete_map=STAGE_COLOR_MAP,
             )
             fig.update_yaxes(autorange="reversed", title=None)
@@ -519,20 +581,5 @@ with tab_forward_cal:
             "Target Close Date",
             "Commentary",
         ]
-
-        st.subheader("By quarter")
-        if with_dates.empty:
-            st.caption("No Forward Calendar firms have a Target Close Date yet.")
-        else:
-            with_dates = with_dates.assign(
-                _quarter=with_dates["Target Close Date"].dt.to_period("Q").astype(str)
-            )
-            for quarter in sorted(with_dates["_quarter"].unique()):
-                grp = with_dates[with_dates["_quarter"] == quarter].sort_values("Target Close Date")
-                st.markdown(f"**{quarter}** ({len(grp)})")
-                st.dataframe(grp[display_cols].reset_index(drop=True), width='stretch')
-
-        if not without_dates.empty:
-            st.markdown(f"**Unscheduled** ({len(without_dates)})")
-            st.caption("Set a Target Close Date in Data Entry to place these on the calendar.")
-            st.dataframe(without_dates[display_cols].reset_index(drop=True), width='stretch')
+        st.subheader("Forward Calendar firms")
+        st.dataframe(cal_sorted[display_cols].reset_index(drop=True), width='stretch')

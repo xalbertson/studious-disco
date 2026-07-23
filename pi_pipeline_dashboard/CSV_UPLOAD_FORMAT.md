@@ -33,14 +33,14 @@ A blank, correctly-headed starting point is checked in at
 | `Sub Asset Class` | No | free text | e.g. `Multi Stage`, `Early Stage`, `Direct lending`, `Megacap`, `Seed` | Not constrained to a fixed list — existing data has ~19 distinct values with inconsistent casing (e.g. both `Multi Stage` and `Multi stage` appear). Pick one casing convention for new rows. |
 | `Sector` | No | free text | e.g. `Generalist`, `Biotech`, `Tech`, `Healthcare` | Free text, can be a comma-separated combination like `Consumer, Tech`. |
 | `Geography` | No | text (pick one) | `US`, `Europe`, `Global`, `LatAm`, `US, Europe`, `US, Israel` | This is the **conviction/geo exhibit's** grouping field — sidebar geography filter is built dynamically from whatever's in the data, so off-list values still show up as their own filter option (unlike `Stage`/`Asset Class`/`Source`/`Fundraising Status`, whose filters are fixed lists). |
-| `Client Invested` | No | boolean | `True`/`False`, `Y`/`N`, `Yes`/`No`, `1`/`0` (case-insensitive) | Anything not recognized as true (see values above) is treated as `False`, including a blank cell. |
+| `Clients Invested` | No | list (zero or more, `;`-separated) | `Olympus Mons`, `Gaucho`, `Ursa Major`, `Orion` | Which of the firm's clients are invested. Blank = nobody invested. Multiple values are joined with a semicolon in a single cell, e.g. `Olympus Mons;Orion` (no spaces needed around the `;`, but they're stripped if present). This drives the **Client view** selector at the top-left of the app: switching to a specific client changes what "Client Invested" means everywhere (sidebar filter, Overview metric); switching to **Global** treats a firm as invested if *any* client is in the list. Values outside the four names above are kept but generate a warning on upload, since they won't match any client view. |
 | `Source` | No | text (pick one) | `GIR`, `GIR/Client`, `GIR/Prospect`, `Client`, `Prospect`, `Manager`, `Spin out`, `Portfolio company`, `Internal Contact` | How the firm entered the pipeline. |
 | `HQ` | No | free text | — | Not populated in the seed data; free text. |
 | `Fundraising Status` | No | text (pick one) | `Unknown`, `Not Currently Raising`, `Raising - Early Stage`, `Raising - Final Close`, `Recently Closed` | Drives the Fundraising Timeline exhibit's status breakdown. |
 | `Raise Start Date` | No | date | `YYYY-MM-DD` recommended | When the raise began. Together with `Target Close Date`, this sets how long the bar spans on the Fundraising Timeline / Forward Calendar Gantt charts. If left blank, that firm's chart bar falls back to a one-day marker at `Target Close Date` instead of a real span. |
 | `Target Close Date` | No | date | `YYYY-MM-DD` recommended | Pandas will parse most common date formats, but ISO (`2026-09-01`) is the only one guaranteed unambiguous. Blank = no date. Drives the Fundraising Timeline sort/chart. |
 | `Next Follow Up Date` | No | date | `YYYY-MM-DD` recommended | Same format rules as `Target Close Date`. |
-| `On Forward Calendar` | No | boolean | `True`/`False`, `Y`/`N`, `Yes`/`No`, `1`/`0` (case-insensitive) | Whether the firm is on the manually-curated Forward Calendar exhibit. Normally set by dragging in the Forward Calendar tab, not by CSV — but settable here too if pre-populating a calendar. |
+| `Forward Calendar Order` | No | integer, or blank | e.g. `0`, `1`, `2`, … | Blank = not on the Forward Calendar. A number = on the calendar, at that position in the custom drag order (`0` first). Normally set by dragging in the Forward Calendar tab, not by CSV — if you do set it by hand, use consecutive integers starting at `0`; gaps or duplicates aren't validated. |
 | `Access` | No | free text | e.g. `Strong`, `Medium`, `Weak`, or blank | Conviction sub-score; not populated in the seed data. |
 | `Track Record` | No | free text | e.g. `Strong`, `Medium`, `Weak`, or blank | Conviction sub-score; not populated in the seed data. |
 | `Type of Risk` | No | free text | — | Conviction sub-score; not populated in the seed data. |
@@ -63,6 +63,11 @@ list won't crash anything and will still display in unfiltered views, but:
 `Geography` is the exception — its sidebar filter is built from whatever
 values are present in the data, so off-list geographies still work fully.
 
+`Clients Invested` values outside `Olympus Mons`/`Gaucho`/`Ursa Major`/`Orion`
+are kept in the data (nothing is dropped) but can never match any client
+view, so they're functionally invisible to the "Client Invested" filter and
+metric. The upload flow warns about this rather than rejecting the file.
+
 **Recommendation for an agent generating this CSV:** always emit the exact
 strings from the "Allowed values" column above for `Stage`, `Asset Class`,
 `Source`, and `Fundraising Status`. Free-text columns (`Sub Asset Class`,
@@ -72,8 +77,8 @@ constraint.
 ## Example row
 
 ```csv
-Firm,Stage,Asset Class,Sub Asset Class,Sector,Geography,Client Invested,Source,HQ,Fundraising Status,Raise Start Date,Target Close Date,Next Follow Up Date,On Forward Calendar,Access,Track Record,Type of Risk,Execution/Strategy Adherence,Commentary,Last Updated
-Example Capital Partners,1. Core idea,Venture,Multi Stage,Generalist,US,Y,GIR,New York,Raising - Early Stage,2026-07-01,2026-11-15,2026-09-01,N,Strong,Strong,,,"Top idea, strong partnership, no near-term concerns",2026-07-23
+Firm,Stage,Asset Class,Sub Asset Class,Sector,Geography,Clients Invested,Source,HQ,Fundraising Status,Raise Start Date,Target Close Date,Next Follow Up Date,Forward Calendar Order,Access,Track Record,Type of Risk,Execution/Strategy Adherence,Commentary,Last Updated
+Example Capital Partners,1. Core idea,Venture,Multi Stage,Generalist,US,Olympus Mons;Orion,GIR,New York,Raising - Early Stage,2026-07-01,2026-11-15,2026-09-01,,Strong,Strong,,,"Top idea, strong partnership, no near-term concerns",2026-07-23
 ```
 
 Minimal valid row (only the required column):
