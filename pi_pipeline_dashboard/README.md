@@ -12,8 +12,12 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-This opens at `http://localhost:8501`. Data lives in `data/pipeline_data.csv` and
-is edited in place from the app (or by hand, since it's a plain CSV).
+This opens at `http://localhost:5000` (port and bind address are set in
+`.streamlit/config.toml`). Data lives in `data/pipeline_data.csv` and is
+edited in place from the app (or by hand, since it's a plain CSV).
+
+Running behind a remote Jupyter/JupyterHub server? `localhost` in your
+browser never reaches it — see the note at the bottom of this file.
 
 ## Tabs
 
@@ -93,3 +97,24 @@ Asset Class`, `Sector`, `Geography`, `Client Invested`, `Source`,
   without launching the app.
 - The CSV is plain text, so it diffs cleanly in git if you want to version
   pipeline changes over time.
+
+## Running on a remote Jupyter/JupyterHub server
+
+`http://localhost:5000` only works if your browser is on the same machine as
+the Streamlit process. On a remote JupyterHub, it isn't — so:
+
+1. Launch it **detached**, so closing the browser tab doesn't kill it:
+   ```bash
+   cd pi_pipeline_dashboard
+   nohup streamlit run app.py > streamlit.log 2>&1 &
+   disown
+   ```
+2. Reach it through the hub's proxy (requires the `jupyter-server-proxy`
+   package; `pip install jupyter-server-proxy` if `pip show
+   jupyter-server-proxy` comes back empty) at:
+   ```
+   https://<hub-domain>/user/<your-username>/proxy/5000/
+   ```
+   (trailing slash required). If that's not an option, tunnel instead:
+   `ssh -L 5000:localhost:5000 you@the-server`, then use
+   `http://localhost:5000` on your own machine.
