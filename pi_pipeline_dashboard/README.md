@@ -100,17 +100,18 @@ number in Data Entry (one column per client), though dragging is the normal
 way to set it.
 
 Below the drag-and-drop board, a **Sort by** toggle controls the order of the
-Gantt chart and the table beneath it, for whichever client's calendar is
+firm table and the Gantt chart beneath it, for whichever client's calendar is
 active: **Custom order** (default — matches however you last arranged that
 client's drag board), **Asset Class**, **Conviction**, or **Fundraising
 Start Date**. Switching sort modes doesn't touch the underlying custom
 order — it's purely a different way to view the same set of firms.
 
-Sorting by **Asset Class** or **Conviction** adds a dashed divider line
-between groups on the Gantt chart, and breaks the table below it into one
-sub-table per group (`Venture`, `Growth`, …), so it's clear where one group
-ends and the next begins. Custom order and Fundraising Start Date show a
-single flat table/chart instead, since there's no discrete group to divide.
+Sorting by **Asset Class** or **Conviction** breaks the table into one
+sub-table per group (`Venture`, `Growth`, …), and adds a matching dashed
+divider line between groups on the Gantt chart below it, so it's clear where
+one group ends and the next begins. Custom order and Fundraising Start Date
+show a single flat table/chart instead, since there's no discrete group to
+divide.
 
 ## Bulk import
 
