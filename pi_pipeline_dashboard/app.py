@@ -513,19 +513,6 @@ with tab_forward_cal:
         "to see and build a different client's calendar."
     )
 
-    st.divider()
-
-    split_pct = st.slider(
-        "Panel widths — Exhibits (left) / Filtered results (right)",
-        min_value=20,
-        max_value=80,
-        value=st.session_state.get("forward_cal_split", 50),
-        step=5,
-        key="forward_cal_split",
-        help="Drag to resize the Exhibits panel against the Filtered results / drag board panel.",
-    )
-    exhibits_col, board_col = st.columns([split_pct, 100 - split_pct])
-
     all_firms_df = st.session_state.df
     on_cal = all_firms_df[order_col].notna()
     calendar_items = all_firms_df.loc[on_cal].sort_values(order_col)["Firm"].tolist()
@@ -538,18 +525,17 @@ with tab_forward_cal:
         (global_client + "::" + "|".join(source_items) + "::" + "|".join(calendar_items)).encode()
     ).hexdigest()[:12]
 
-    with board_col:
-        board = sort_items(
-            [
-                {"header": f"🔍 Filtered results ({len(source_items)})", "items": source_items},
-                {
-                    "header": f"🗓️ {global_client} Forward Calendar ({len(calendar_items)})",
-                    "items": calendar_items,
-                },
-            ],
-            multi_containers=True,
-            key=f"forward_cal_board_{fingerprint}",
-        )
+    board = sort_items(
+        [
+            {"header": f"🔍 Filtered results ({len(source_items)})", "items": source_items},
+            {
+                "header": f"🗓️ {global_client} Forward Calendar ({len(calendar_items)})",
+                "items": calendar_items,
+            },
+        ],
+        multi_containers=True,
+        key=f"forward_cal_board_{fingerprint}",
+    )
 
     new_calendar_order = board[1]["items"]
     if new_calendar_order != calendar_items:
@@ -560,115 +546,116 @@ with tab_forward_cal:
         st.session_state.df = load_data()
         st.rerun()
 
-    with exhibits_col:
-        cal_df = st.session_state.df[st.session_state.df[order_col].notna()].copy()
-        if cal_df.empty:
-            st.info(f"Nothing on {global_client}'s Forward Calendar yet - drag firms in above.")
+    st.divider()
+
+    cal_df = st.session_state.df[st.session_state.df[order_col].notna()].copy()
+    if cal_df.empty:
+        st.info(f"Nothing on {global_client}'s Forward Calendar yet - drag firms in above.")
+    else:
+        sort_col, clear_col = st.columns([3, 1])
+        with sort_col:
+            sort_mode = st.radio(
+                "Sort by",
+                FORWARD_CAL_SORT_OPTIONS,
+                horizontal=True,
+                key=f"forward_cal_sort_mode_{global_client}",
+            )
+        with clear_col:
+            if st.button(f"🗑️ Clear {global_client}'s Forward Calendar"):
+                cleared = st.session_state.df.copy()
+                cleared[order_col] = float("nan")
+                save_data(cleared)
+                st.session_state.df = load_data()
+                st.rerun()
+
+        if sort_mode == "Custom order":
+            cal_sorted = cal_df.sort_values(order_col)
+        elif sort_mode == "Asset Class":
+            asset_rank = {a: i for i, a in enumerate(ASSET_CLASS_OPTIONS)}
+            cal_sorted = (
+                cal_df.assign(_r=cal_df["Asset Class"].map(lambda a: asset_rank.get(a, 99)))
+                .sort_values(["_r", "Firm"])
+                .drop(columns="_r")
+            )
+        elif sort_mode == "Conviction":
+            cal_sorted = (
+                cal_df.assign(_r=stage_sort_key(cal_df))
+                .sort_values(["_r", "Firm"])
+                .drop(columns="_r")
+            )
+        else:  # Fundraising Start Date
+            cal_sorted = cal_df.sort_values(["Raise Start Date", "Firm"], na_position="last")
+
+        group_col = {"Asset Class": "Asset Class", "Conviction": "Stage"}.get(sort_mode)
+
+        with_dates = cal_sorted[cal_sorted["Target Close Date"].notna()]
+        chart_firm_order = with_dates["Firm"].tolist()
+
+        if with_dates.empty:
+            st.caption("No Forward Calendar firms have a Target Close Date yet - no Gantt chart to show.")
         else:
-            sort_col, clear_col = st.columns([3, 1])
-            with sort_col:
-                sort_mode = st.radio(
-                    "Sort by",
-                    FORWARD_CAL_SORT_OPTIONS,
-                    horizontal=True,
-                    key=f"forward_cal_sort_mode_{global_client}",
-                )
-            with clear_col:
-                if st.button(f"🗑️ Clear {global_client}'s Forward Calendar"):
-                    cleared = st.session_state.df.copy()
-                    cleared[order_col] = float("nan")
-                    save_data(cleared)
-                    st.session_state.df = load_data()
-                    st.rerun()
+            fig = px.timeline(
+                gantt_bars(with_dates),
+                x_start="_start",
+                x_end="_end",
+                y="Firm",
+                color="Stage",
+                category_orders={"Stage": STAGE_OPTIONS, "Firm": chart_firm_order},
+                color_discrete_map=STAGE_COLOR_MAP,
+            )
+            fig.update_yaxes(title=None)
 
-            if sort_mode == "Custom order":
-                cal_sorted = cal_df.sort_values(order_col)
-            elif sort_mode == "Asset Class":
-                asset_rank = {a: i for i, a in enumerate(ASSET_CLASS_OPTIONS)}
-                cal_sorted = (
-                    cal_df.assign(_r=cal_df["Asset Class"].map(lambda a: asset_rank.get(a, 99)))
-                    .sort_values(["_r", "Firm"])
-                    .drop(columns="_r")
-                )
-            elif sort_mode == "Conviction":
-                cal_sorted = (
-                    cal_df.assign(_r=stage_sort_key(cal_df))
-                    .sort_values(["_r", "Firm"])
-                    .drop(columns="_r")
-                )
-            else:  # Fundraising Start Date
-                cal_sorted = cal_df.sort_values(["Raise Start Date", "Firm"], na_position="last")
-
-            group_col = {"Asset Class": "Asset Class", "Conviction": "Stage"}.get(sort_mode)
-
-            with_dates = cal_sorted[cal_sorted["Target Close Date"].notna()]
-            chart_firm_order = with_dates["Firm"].tolist()
-
-            if with_dates.empty:
-                st.caption("No Forward Calendar firms have a Target Close Date yet - no Gantt chart to show.")
-            else:
-                fig = px.timeline(
-                    gantt_bars(with_dates),
-                    x_start="_start",
-                    x_end="_end",
-                    y="Firm",
-                    color="Stage",
-                    category_orders={"Stage": STAGE_OPTIONS, "Firm": chart_firm_order},
-                    color_discrete_map=STAGE_COLOR_MAP,
-                )
-                fig.update_yaxes(title=None)
-
-                if group_col:
-                    # A labeled divider above each Asset Class / Conviction block, so
-                    # it's clear which group each set of bars belongs to. Plotly
-                    # resolves a *named* category correctly for annotations, but a
-                    # raw numeric y is mirrored relative to category_orders - so the
-                    # divider line (which needs a boundary, not a named category)
-                    # has to compensate with (N - 0.5 - position).
-                    group_values = with_dates[group_col].tolist()
-                    n = len(group_values)
-                    block_start = 0
-                    for i in range(1, n + 1):
-                        if i == n or group_values[i] != group_values[i - 1]:
-                            fig.add_annotation(
-                                x=0,
-                                xref="x domain",
-                                xanchor="left",
-                                y=chart_firm_order[block_start],
-                                yref="y",
-                                yanchor="bottom",
-                                text=f"<b>{group_values[block_start] or '(blank)'}</b>",
-                                showarrow=False,
-                                font=dict(size=12, color="#52514e"),
-                                bgcolor="rgba(255,255,255,0.85)",
-                                align="left",
-                            )
-                            if block_start > 0:
-                                fig.add_hline(
-                                    y=n - 0.5 - block_start, line_width=1, line_dash="dot", line_color="gray"
-                                )
-                            block_start = i
-
-                st.plotly_chart(fig, width='stretch', key="chart_forward_calendar_gantt")
-
-            display_cols = [
-                "Firm",
-                "Stage",
-                "Asset Class",
-                "Geography",
-                "Fundraising Status",
-                "Raise Start Date",
-                "Target Close Date",
-                "Commentary",
-            ]
-            st.subheader("Forward Calendar firms")
             if group_col:
-                first = True
-                for group_value, group_rows in cal_sorted.groupby(group_col, sort=False):
-                    if not first:
-                        st.divider()
-                    first = False
-                    st.markdown(f"**{group_value or '(blank)'}** ({len(group_rows)})")
-                    st.dataframe(group_rows[display_cols].reset_index(drop=True), width='stretch')
-            else:
-                st.dataframe(cal_sorted[display_cols].reset_index(drop=True), width='stretch')
+                # A labeled divider above each Asset Class / Conviction block, so
+                # it's clear which group each set of bars belongs to. Plotly
+                # resolves a *named* category correctly for annotations, but a
+                # raw numeric y is mirrored relative to category_orders - so the
+                # divider line (which needs a boundary, not a named category)
+                # has to compensate with (N - 0.5 - position).
+                group_values = with_dates[group_col].tolist()
+                n = len(group_values)
+                block_start = 0
+                for i in range(1, n + 1):
+                    if i == n or group_values[i] != group_values[i - 1]:
+                        fig.add_annotation(
+                            x=0,
+                            xref="x domain",
+                            xanchor="left",
+                            y=chart_firm_order[block_start],
+                            yref="y",
+                            yanchor="bottom",
+                            text=f"<b>{group_values[block_start] or '(blank)'}</b>",
+                            showarrow=False,
+                            font=dict(size=12, color="#52514e"),
+                            bgcolor="rgba(255,255,255,0.85)",
+                            align="left",
+                        )
+                        if block_start > 0:
+                            fig.add_hline(
+                                y=n - 0.5 - block_start, line_width=1, line_dash="dot", line_color="gray"
+                            )
+                        block_start = i
+
+            st.plotly_chart(fig, width='stretch', key="chart_forward_calendar_gantt")
+
+        display_cols = [
+            "Firm",
+            "Stage",
+            "Asset Class",
+            "Geography",
+            "Fundraising Status",
+            "Raise Start Date",
+            "Target Close Date",
+            "Commentary",
+        ]
+        st.subheader("Forward Calendar firms")
+        if group_col:
+            first = True
+            for group_value, group_rows in cal_sorted.groupby(group_col, sort=False):
+                if not first:
+                    st.divider()
+                first = False
+                st.markdown(f"**{group_value or '(blank)'}** ({len(group_rows)})")
+                st.dataframe(group_rows[display_cols].reset_index(drop=True), width='stretch')
+        else:
+            st.dataframe(cal_sorted[display_cols].reset_index(drop=True), width='stretch')
