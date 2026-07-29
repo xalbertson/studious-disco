@@ -588,6 +588,28 @@ with tab_forward_cal:
 
         group_col = {"Asset Class": "Asset Class", "Conviction": "Stage"}.get(sort_mode)
 
+        display_cols = [
+            "Firm",
+            "Stage",
+            "Asset Class",
+            "Geography",
+            "Fundraising Status",
+            "Raise Start Date",
+            "Target Close Date",
+            "Commentary",
+        ]
+        st.subheader("Forward Calendar firms")
+        if group_col:
+            first = True
+            for group_value, group_rows in cal_sorted.groupby(group_col, sort=False):
+                if not first:
+                    st.divider()
+                first = False
+                st.markdown(f"**{group_value or '(blank)'}** ({len(group_rows)})")
+                st.dataframe(group_rows[display_cols].reset_index(drop=True), width='stretch')
+        else:
+            st.dataframe(cal_sorted[display_cols].reset_index(drop=True), width='stretch')
+
         with_dates = cal_sorted[cal_sorted["Target Close Date"].notna()]
         chart_firm_order = with_dates["Firm"].tolist()
 
@@ -637,25 +659,3 @@ with tab_forward_cal:
                         block_start = i
 
             st.plotly_chart(fig, width='stretch', key="chart_forward_calendar_gantt")
-
-        display_cols = [
-            "Firm",
-            "Stage",
-            "Asset Class",
-            "Geography",
-            "Fundraising Status",
-            "Raise Start Date",
-            "Target Close Date",
-            "Commentary",
-        ]
-        st.subheader("Forward Calendar firms")
-        if group_col:
-            first = True
-            for group_value, group_rows in cal_sorted.groupby(group_col, sort=False):
-                if not first:
-                    st.divider()
-                first = False
-                st.markdown(f"**{group_value or '(blank)'}** ({len(group_rows)})")
-                st.dataframe(group_rows[display_cols].reset_index(drop=True), width='stretch')
-        else:
-            st.dataframe(cal_sorted[display_cols].reset_index(drop=True), width='stretch')
