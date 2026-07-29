@@ -71,6 +71,12 @@ Unlike the other exhibits, which just show whatever the sidebar filters
 currently match, the Forward Calendar is a **manually curated** set of firms
 that persists independent of the filters:
 
+The tab is split into two side-by-side panels: **exhibits** (sort/clear
+controls, the Gantt chart, and the firm table) on the left, and the
+**drag-and-drop board** (Filtered results + the client's Forward Calendar
+list) on the right. A **Panel widths** slider above them controls the split —
+drag it to give more room to whichever side you're using.
+
 **Every client view has its own, independent Forward Calendar — Global
 included.** The calendar you see and edit is whichever one matches the
 top-left **Client view** selector; switching it swaps in that client's
